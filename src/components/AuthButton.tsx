@@ -52,12 +52,17 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
     handleCallback();
   }, [onAuthChange]);
 
-  const handleLogin = async () => {
+  const handleLogin = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      await oauthService.initiateLogin();
+      // Ensure we're doing a full page redirect, not iframe
+      console.log('Initiating OAuth login with full page redirect...');
+      oauthService.initiateLogin();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
       setIsLoading(false);
@@ -120,6 +125,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
             onClick={handleLogin} 
             className="w-full"
             disabled={isLoading}
+            type="button"
           >
             <LogIn className="h-4 w-4 mr-2" />
             Login with Okta

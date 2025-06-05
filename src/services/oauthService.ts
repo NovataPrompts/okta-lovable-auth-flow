@@ -60,7 +60,9 @@ class OAuthService {
       console.log('- Redirect URI:', this.redirectUri);
       console.log('- Authorization URL:', authUrl.toString());
       
-      window.location.href = authUrl.toString();
+      // Force a full page redirect (not iframe)
+      console.log('Performing full page redirect to Okta...');
+      window.location.assign(authUrl.toString());
     } catch (error) {
       console.error('Error initiating OAuth login:', error);
       throw new Error('Failed to initiate login');
