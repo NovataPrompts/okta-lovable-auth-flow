@@ -54,7 +54,12 @@ class OAuthService {
       authUrl.searchParams.set('code_challenge', codeChallenge);
       authUrl.searchParams.set('code_challenge_method', 'S256');
 
-      console.log('Initiating OAuth login...');
+      console.log('OAuth Configuration:');
+      console.log('- Issuer:', this.issuer);
+      console.log('- Client ID:', this.clientId);
+      console.log('- Redirect URI:', this.redirectUri);
+      console.log('- Authorization URL:', authUrl.toString());
+      
       window.location.href = authUrl.toString();
     } catch (error) {
       console.error('Error initiating OAuth login:', error);
@@ -69,9 +74,18 @@ class OAuthService {
       const code = urlParams.get('code');
       const state = urlParams.get('state');
       const error = urlParams.get('error');
+      const errorDescription = urlParams.get('error_description');
+
+      console.log('Callback URL params:', {
+        code: code ? 'present' : 'missing',
+        state: state ? 'present' : 'missing',
+        error,
+        errorDescription
+      });
 
       if (error) {
-        throw new Error(`OAuth error: ${error}`);
+        console.error('OAuth error from Okta:', error, errorDescription);
+        throw new Error(`OAuth error: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`);
       }
 
       if (!code || !state) {
@@ -81,6 +95,7 @@ class OAuthService {
       // Verify state parameter
       const storedState = sessionStorage.getItem('oauth_state');
       if (state !== storedState) {
+        console.error('State mismatch:', { received: state, stored: storedState });
         throw new Error('Invalid state parameter');
       }
 
@@ -89,6 +104,9 @@ class OAuthService {
       if (!codeVerifier) {
         throw new Error('Missing code verifier');
       }
+
+      console.log('Exchanging code for tokens...');
+      console.log('Token endpoint:', `${this.issuer}/v1/token`);
 
       // Exchange code for tokens
       const tokenResponse = await fetch(`${this.issuer}/v1/token`, {
@@ -105,18 +123,25 @@ class OAuthService {
         }),
       });
 
+      console.log('Token response status:', tokenResponse.status);
+
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.text();
-        throw new Error(`Token exchange failed: ${errorData}`);
+        console.error('Token exchange failed:', {
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText,
+          error: errorData
+        });
+        throw new Error(`Token exchange failed (${tokenResponse.status}): ${errorData}`);
       }
 
       const tokens = await tokenResponse.json();
+      console.log('Token exchange successful');
       
       // Clean up temporary storage
       sessionStorage.removeItem('oauth_code_verifier');
       sessionStorage.removeItem('oauth_state');
 
-      console.log('OAuth login successful');
       return {
         accessToken: tokens.access_token,
         idToken: tokens.id_token,
