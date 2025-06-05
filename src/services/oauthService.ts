@@ -2,7 +2,7 @@
 // OAuth 2.0 with PKCE service for Okta authentication
 class OAuthService {
   private readonly issuer = 'https://novataworkforcesandbox.oktapreview.com/oauth2/default';
-  private readonly clientId = 'YOUR_CLIENT_ID'; // Replace with actual client ID
+  private readonly clientId = '0oan0uf1p7BAsvphm1d7'; // Updated with actual client ID
   private readonly redirectUri = `${window.location.origin}/callback`;
   private readonly scope = 'openid profile email';
   
