@@ -37,9 +37,16 @@ class OAuthService {
   // Initiate OAuth login flow
   async initiateLogin(): Promise<void> {
     try {
+      console.log('=== Starting OAuth Login Process ===');
+      
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       const state = this.generateState();
+
+      console.log('Generated PKCE parameters:');
+      console.log('- Code verifier length:', codeVerifier.length);
+      console.log('- Code challenge length:', codeChallenge.length);
+      console.log('- State length:', state.length);
 
       // Store PKCE parameters in sessionStorage temporarily (cleared after use)
       sessionStorage.setItem('oauth_code_verifier', codeVerifier);
@@ -58,13 +65,29 @@ class OAuthService {
       console.log('- Issuer:', this.issuer);
       console.log('- Client ID:', this.clientId);
       console.log('- Redirect URI:', this.redirectUri);
-      console.log('- Authorization URL:', authUrl.toString());
+      console.log('- Scope:', this.scope);
+      console.log('- Authorization URL length:', authUrl.toString().length);
+      
+      // Log each parameter for debugging
+      console.log('URL Parameters:');
+      authUrl.searchParams.forEach((value, key) => {
+        console.log(`  ${key}:`, value.substring(0, 50) + (value.length > 50 ? '...' : ''));
+      });
+      
+      console.log('Full Authorization URL:', authUrl.toString());
+      
+      // Add a small delay to ensure logging completes
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Force a full page redirect (not iframe)
       console.log('Performing full page redirect to Okta...');
-      window.location.assign(authUrl.toString());
+      
+      // Try location.replace instead of assign to ensure no back button issues
+      window.location.replace(authUrl.toString());
+      
     } catch (error) {
       console.error('Error initiating OAuth login:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       throw new Error('Failed to initiate login');
     }
   }
