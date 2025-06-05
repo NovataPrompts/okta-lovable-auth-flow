@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { API, RefreshCw, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { Server, RefreshCw, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { novataApi } from '@/services/novataApi';
 import { tokenManager } from '@/services/tokenManager';
 
@@ -49,7 +49,7 @@ const ApiTestPanel: React.FC<ApiTestPanelProps> = ({ isAuthenticated }) => {
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <API className="h-5 w-5" />
+          <Server className="h-5 w-5" />
           <span>Novata API Test Panel</span>
         </CardTitle>
         <CardDescription>
