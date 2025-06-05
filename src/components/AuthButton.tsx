@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogIn, LogOut, User, Shield } from 'lucide-react';
+import { LogIn, LogOut, User, Shield, AlertCircle } from 'lucide-react';
 import { oauthService } from '@/services/oauthService';
 import { tokenManager } from '@/services/tokenManager';
+import MfaGuide from './MfaGuide';
 
 interface AuthButtonProps {
   onAuthChange: (isAuthenticated: boolean) => void;
@@ -14,6 +15,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showMfaGuide, setShowMfaGuide] = useState(false);
 
   useEffect(() => {
     // Check initial auth state
@@ -41,7 +43,14 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
           // Clear URL parameters and redirect to home
           window.history.replaceState({}, document.title, '/');
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Authentication failed');
+          const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+          setError(errorMessage);
+          
+          // Show MFA guide if it's an MFA-related error
+          if (errorMessage.includes('MFA') || errorMessage.includes('multi-factor')) {
+            setShowMfaGuide(true);
+          }
+          
           console.error('OAuth callback error:', err);
         } finally {
           setIsLoading(false);
@@ -58,20 +67,28 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
     
     setIsLoading(true);
     setError(null);
+    setShowMfaGuide(false);
     
     try {
       // Ensure we're doing a full page redirect, not iframe
-      console.log('Initiating OAuth login with full page redirect...');
+      console.log('Initiating OAuth login with MFA support...');
       oauthService.initiateLogin();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
       setIsLoading(false);
+      
+      // Show MFA guide if it's an MFA-related error
+      if (errorMessage.includes('MFA') || errorMessage.includes('multi-factor')) {
+        setShowMfaGuide(true);
+      }
     }
   };
 
   const handleLogout = () => {
     tokenManager.clearToken();
     setError(null);
+    setShowMfaGuide(false);
   };
 
   if (isLoading) {
@@ -87,6 +104,28 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
     );
   }
 
+  // Show MFA guide if requested
+  if (showMfaGuide && !isAuthenticated) {
+    return (
+      <div className="space-y-4">
+        <MfaGuide />
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <Button 
+              onClick={handleLogin} 
+              className="w-full"
+              disabled={isLoading}
+              type="button"
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              Try Login Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
@@ -95,13 +134,27 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
           <span>Okta Authentication</span>
         </CardTitle>
         <CardDescription>
-          {isAuthenticated ? 'Successfully authenticated with Okta' : 'Login with your Okta credentials'}
+          {isAuthenticated ? 'Successfully authenticated with Okta' : 'Login with your Okta credentials (MFA required)'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
-          <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-            {error}
+          <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md flex items-start space-x-2">
+            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <div>
+              <div className="font-medium">Authentication Error</div>
+              <div className="text-xs mt-1">{error}</div>
+              {(error.includes('MFA') || error.includes('Policy')) && (
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="h-auto p-0 text-xs underline mt-1"
+                  onClick={() => setShowMfaGuide(true)}
+                >
+                  Show MFA Help
+                </Button>
+              )}
+            </div>
           </div>
         )}
         
@@ -109,7 +162,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
           <div className="space-y-3">
             <div className="flex items-center space-x-2 text-green-600">
               <User className="h-4 w-4" />
-              <span className="text-sm">Authenticated</span>
+              <span className="text-sm">Authenticated with MFA</span>
             </div>
             <Button 
               onClick={handleLogout} 
@@ -128,7 +181,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
             type="button"
           >
             <LogIn className="h-4 w-4 mr-2" />
-            Login with Okta
+            Login with Okta (MFA)
           </Button>
         )}
       </CardContent>

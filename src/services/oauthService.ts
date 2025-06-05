@@ -1,5 +1,5 @@
 
-// OAuth 2.0 with PKCE service for Okta authentication
+// OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://novataworkforcesandbox.oktapreview.com/oauth2/default';
   private readonly clientId = '0oan0uf1p7BAsvphm1d7'; // Updated with actual client ID
@@ -60,6 +60,8 @@ class OAuthService {
       authUrl.searchParams.set('state', state);
       authUrl.searchParams.set('code_challenge', codeChallenge);
       authUrl.searchParams.set('code_challenge_method', 'S256');
+      // Add prompt parameter to ensure MFA is triggered
+      authUrl.searchParams.set('prompt', 'login');
 
       console.log('OAuth Configuration:');
       console.log('- Issuer:', this.issuer);
@@ -108,8 +110,15 @@ class OAuthService {
         errorDescription
       });
 
+      // Handle MFA-related errors specifically
       if (error) {
         console.error('OAuth error from Okta:', error, errorDescription);
+        
+        // Check for MFA-specific errors
+        if (error === 'access_denied' && errorDescription?.includes('Policy')) {
+          throw new Error('MFA authentication required. Please complete multi-factor authentication in the popup window.');
+        }
+        
         throw new Error(`OAuth error: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`);
       }
 
@@ -157,6 +166,12 @@ class OAuthService {
           statusText: tokenResponse.statusText,
           error: errorData
         });
+        
+        // Handle MFA-related token exchange errors
+        if (tokenResponse.status === 400 && errorData.includes('invalid_grant')) {
+          throw new Error('MFA verification incomplete. Please retry the authentication process.');
+        }
+        
         throw new Error(`Token exchange failed (${tokenResponse.status}): ${errorData}`);
       }
 
