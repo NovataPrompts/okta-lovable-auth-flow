@@ -50,10 +50,10 @@ const ApiTestPanel: React.FC<ApiTestPanelProps> = ({ isAuthenticated }) => {
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Server className="h-5 w-5" />
-          <span>Novata API Test Panel</span>
+          <span>Novata Sandbox API Test Panel</span>
         </CardTitle>
         <CardDescription>
-          Test authenticated API calls to Novata's backend
+          Test authenticated API calls to Novata's sandbox backend
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -84,9 +84,9 @@ const ApiTestPanel: React.FC<ApiTestPanelProps> = ({ isAuthenticated }) => {
 
         {/* API Call Button */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium">Test API Endpoint</h4>
+          <h4 className="text-sm font-medium">Test Sandbox API Endpoint</h4>
           <p className="text-sm text-muted-foreground">
-            GET https://api.novata.com/apis/novata/me
+            GET https://api.sandbox.novata.com/apis/novata/me
           </p>
           <Button 
             onClick={handleApiCall}
@@ -98,7 +98,7 @@ const ApiTestPanel: React.FC<ApiTestPanelProps> = ({ isAuthenticated }) => {
             ) : (
               <User className="h-4 w-4 mr-2" />
             )}
-            {isLoading ? 'Calling API...' : 'Call /me Endpoint'}
+            {isLoading ? 'Calling Sandbox API...' : 'Call Sandbox /me Endpoint'}
           </Button>
         </div>
 

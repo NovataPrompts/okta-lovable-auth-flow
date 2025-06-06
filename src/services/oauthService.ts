@@ -1,8 +1,8 @@
 
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
-  private readonly issuer = 'https://novataworkforcesandbox.oktapreview.com/oauth2/default';
-  private readonly clientId = '0oan0uf1p7BAsvphm1d7'; // Updated with actual client ID
+  private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
+  private readonly clientId = '0oan1pa7s3tRupysv1d7'; // Updated with sandbox client ID
   private readonly redirectUri = `${window.location.origin}/callback`;
   private readonly scope = 'openid profile email';
   
@@ -37,7 +37,7 @@ class OAuthService {
   // Initiate OAuth login flow
   async initiateLogin(): Promise<void> {
     try {
-      console.log('=== Starting OAuth Login Process ===');
+      console.log('=== Starting OAuth Login Process (Sandbox) ===');
       
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
@@ -63,7 +63,7 @@ class OAuthService {
       // Add prompt parameter to ensure MFA is triggered
       authUrl.searchParams.set('prompt', 'login');
 
-      console.log('OAuth Configuration:');
+      console.log('OAuth Configuration (Sandbox):');
       console.log('- Issuer:', this.issuer);
       console.log('- Client ID:', this.clientId);
       console.log('- Redirect URI:', this.redirectUri);
@@ -82,7 +82,7 @@ class OAuthService {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // Force a full page redirect (not iframe)
-      console.log('Performing full page redirect to Okta...');
+      console.log('Performing full page redirect to Okta sandbox...');
       
       // Try location.replace instead of assign to ensure no back button issues
       window.location.replace(authUrl.toString());
