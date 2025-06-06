@@ -50,10 +50,10 @@ const ApiTestPanel: React.FC<ApiTestPanelProps> = ({ isAuthenticated }) => {
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Server className="h-5 w-5" />
-          <span>Novata Sandbox API Test Panel</span>
+          <span>Novata Production API Test Panel</span>
         </CardTitle>
         <CardDescription>
-          Test authenticated API calls to Novata's sandbox backend
+          Test authenticated API calls to Novata's production backend with sandbox OAuth token
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -84,9 +84,9 @@ const ApiTestPanel: React.FC<ApiTestPanelProps> = ({ isAuthenticated }) => {
 
         {/* API Call Button */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium">Test Sandbox API Endpoint</h4>
+          <h4 className="text-sm font-medium">Test Production API Endpoint</h4>
           <p className="text-sm text-muted-foreground">
-            GET https://api.sandbox.novata.com/apis/novata/me
+            GET https://api.novata.com/apis/novata/me
           </p>
           <Button 
             onClick={handleApiCall}
@@ -98,7 +98,7 @@ const ApiTestPanel: React.FC<ApiTestPanelProps> = ({ isAuthenticated }) => {
             ) : (
               <User className="h-4 w-4 mr-2" />
             )}
-            {isLoading ? 'Calling Sandbox API...' : 'Call Sandbox /me Endpoint'}
+            {isLoading ? 'Calling Production API...' : 'Call Production /me Endpoint'}
           </Button>
         </div>
 
@@ -132,13 +132,26 @@ const ApiTestPanel: React.FC<ApiTestPanelProps> = ({ isAuthenticated }) => {
           </div>
         )}
 
+        {/* Test Instructions */}
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <h4 className="text-sm font-medium text-blue-800 mb-2">CORS & Auth Test</h4>
+          <div className="text-xs text-blue-700 space-y-1">
+            <p><strong>Testing production API with sandbox OAuth token...</strong></p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
+              <li><strong>CORS Error:</strong> Production API doesn't allow this preview domain</li>
+              <li><strong>401 Unauthorized:</strong> Sandbox token invalid for production audience</li>
+              <li><strong>200 Success:</strong> Ready for production use!</li>
+            </ul>
+          </div>
+        </div>
+
         {/* Usage Instructions */}
         <div className="text-xs text-muted-foreground space-y-1">
           <p><strong>Instructions:</strong></p>
           <ul className="list-disc list-inside space-y-1 ml-2">
             <li>First authenticate with Okta using the login button above</li>
-            <li>Once authenticated, click "Call /me Endpoint" to test the API</li>
-            <li>The response will show your user information from Novata</li>
+            <li>Once authenticated, click "Call Production /me Endpoint" to test</li>
+            <li>Check browser console for detailed CORS/auth error messages</li>
             <li>Tokens are stored in memory only (not persisted)</li>
           </ul>
         </div>

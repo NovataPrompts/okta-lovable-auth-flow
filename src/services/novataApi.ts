@@ -1,11 +1,11 @@
 
 import { tokenManager } from './tokenManager';
 
-// Novata API service for making authenticated requests to sandbox
+// Novata API service for making authenticated requests to production
 class NovataApiService {
-  private readonly baseUrl = 'https://api.sandbox.novata.com/apis/novata';
+  private readonly baseUrl = 'https://api.novata.com/apis/novata';
 
-  // Make authenticated API call to Novata sandbox
+  // Make authenticated API call to Novata production
   async callApi(endpoint: string, options: RequestInit = {}): Promise<any> {
     const token = tokenManager.getToken();
     
@@ -14,7 +14,7 @@ class NovataApiService {
     }
 
     try {
-      console.log(`Making API call to sandbox: ${this.baseUrl}${endpoint}`);
+      console.log(`Making API call to production: ${this.baseUrl}${endpoint}`);
       
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
@@ -31,10 +31,10 @@ class NovataApiService {
       }
 
       const data = await response.json();
-      console.log('Sandbox API call successful:', data);
+      console.log('Production API call successful:', data);
       return data;
     } catch (error) {
-      console.error('Novata Sandbox API error:', error);
+      console.error('Novata Production API error:', error);
       throw error;
     }
   }
