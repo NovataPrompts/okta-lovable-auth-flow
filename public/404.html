@@ -2,37 +2,18 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
-    <title>Redirect</title>
-    <script type="text/javascript">
-      // This script takes the current page URL and redirects to the index page
-      // with the current path as a query parameter for GitHub Pages SPA
-      var pathSegmentsToKeep = 1;
-      
-      var l = window.location;
-      
-      // Special handling for OAuth callback
-      if (l.pathname === '/okta-lovable-auth-flow/callback' || l.pathname === '/callback') {
-        // For OAuth callback, preserve all parameters and redirect to home with callback path
-        var redirect = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-          '/okta-lovable-auth-flow/' + '?/callback' +
-          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-          l.hash;
-        
-        l.replace(redirect);
-        return;
-      }
-      
-      // Standard SPA redirect handling for other routes
-      var redirect = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        '/okta-lovable-auth-flow/' + '?/' +
-        l.pathname.slice(1).split('/').slice(1).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash;
-      
-      l.replace(redirect);
+    <meta charset="UTF-8" />
+    <title>Redirecting...</title>
+    <script>
+      (function () {
+        const path = location.pathname + location.search + location.hash;
+        const redirectUrl = '/okta-lovable-auth-flow/?' + path.slice(1);
+        console.log('✅ 404 fallback triggered. Redirecting to:', redirectUrl);
+        window.location.replace(redirectUrl);
+      })();
     </script>
   </head>
   <body>
+    <p>Redirecting...</p>
   </body>
 </html>
