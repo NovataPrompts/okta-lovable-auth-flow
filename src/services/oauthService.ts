@@ -121,8 +121,8 @@ class OAuthService {
       let search = window.location.search;
       console.log('🔍 Original search string:', search);
       
-      if (search.startsWith("?/callback?")) {
-        search = "?" + search.split("?/callback?")[1];
+      if (search.startsWith("?callback?")) {
+        search = "?" + search.split("?callback?")[1];
         console.log('🔧 Modified search string for GitHub Pages format:', search);
       }
       
