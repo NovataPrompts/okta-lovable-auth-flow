@@ -30,6 +30,8 @@ jobs:
         run: npm install --prefer-offline --no-audit --no-fund
       - name: Build
         run: npm run build
+      - name: Copy .nojekyll to dist
+        run: cp .nojekyll ./dist/
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
