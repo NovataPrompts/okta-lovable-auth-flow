@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogIn, LogOut, User, Shield, AlertCircle } from 'lucide-react';
+import { LogIn, LogOut, User, Shield, AlertCircle, ExternalLink } from 'lucide-react';
 import { oauthService } from '@/services/oauthService';
 import { tokenManager } from '@/services/tokenManager';
 import MfaGuide from './MfaGuide';
@@ -16,6 +16,15 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMfaGuide, setShowMfaGuide] = useState(false);
+
+  // Check if we're in an iframe (Lovable environment)
+  const isInIframe = () => {
+    try {
+      return window.self !== window.top;
+    } catch (e) {
+      return true;
+    }
+  };
 
   useEffect(() => {
     // Check initial auth state
@@ -37,6 +46,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
         setError(null);
         
         try {
+          console.log('Processing OAuth callback...');
           const tokens = await oauthService.handleCallback();
           tokenManager.setToken(tokens.accessToken);
           
@@ -138,6 +148,17 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Show iframe warning */}
+        {isInIframe() && !isAuthenticated && (
+          <div className="p-3 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-md flex items-start space-x-2">
+            <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <div>
+              <div className="font-medium">Lovable Environment Detected</div>
+              <div className="text-xs mt-1">OAuth login will open in a new tab for security.</div>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md flex items-start space-x-2">
             <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -181,7 +202,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
             type="button"
           >
             <LogIn className="h-4 w-4 mr-2" />
-            Login with Okta (MFA)
+            {isInIframe() ? 'Login with Okta (Opens New Tab)' : 'Login with Okta (MFA)'}
           </Button>
         )}
       </CardContent>

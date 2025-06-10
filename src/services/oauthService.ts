@@ -20,6 +20,15 @@ class OAuthService {
   
   private readonly scope = 'openid profile email';
   
+  // Check if we're in Lovable iframe environment
+  private isInLovableIframe(): boolean {
+    try {
+      return window.self !== window.top;
+    } catch (e) {
+      return true; // If we can't access window.top, we're likely in an iframe
+    }
+  }
+
   // Generate cryptographically random string for PKCE
   private generateCodeVerifier(): string {
     const array = new Uint8Array(32);
@@ -52,6 +61,43 @@ class OAuthService {
   async initiateLogin(): Promise<void> {
     try {
       console.log('=== Starting OAuth Login Process ===');
+      console.log('Environment check - In iframe:', this.isInLovableIframe());
+      console.log('Current URL:', window.location.href);
+      
+      // Check if we're in Lovable iframe - if so, open in new tab
+      if (this.isInLovableIframe()) {
+        console.log('Detected Lovable iframe environment - opening in new tab');
+        
+        const codeVerifier = this.generateCodeVerifier();
+        const codeChallenge = await this.generateCodeChallenge(codeVerifier);
+        const state = this.generateState();
+        const redirectUri = this.determineRedirectUri();
+
+        // Store PKCE parameters in sessionStorage (will be shared with new tab)
+        sessionStorage.setItem('oauth_code_verifier', codeVerifier);
+        sessionStorage.setItem('oauth_state', state);
+
+        const authUrl = new URL(`${this.issuer}/v1/authorize`);
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('client_id', this.clientId);
+        authUrl.searchParams.set('redirect_uri', redirectUri);
+        authUrl.searchParams.set('scope', this.scope);
+        authUrl.searchParams.set('state', state);
+        authUrl.searchParams.set('code_challenge', codeChallenge);
+        authUrl.searchParams.set('code_challenge_method', 'S256');
+        authUrl.searchParams.set('prompt', 'login');
+
+        console.log('Opening OAuth in new tab:', authUrl.toString());
+        
+        // Open in new tab for Lovable environment
+        const newTab = window.open(authUrl.toString(), '_blank');
+        
+        if (!newTab) {
+          throw new Error('Pop-up blocked. Please allow pop-ups for this site and try again.');
+        }
+        
+        return;
+      }
       
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
@@ -127,7 +173,8 @@ class OAuthService {
         errorDescription,
         currentPath: window.location.pathname,
         fullUrl: window.location.href,
-        redirectUri
+        redirectUri,
+        allParams: Object.fromEntries(urlParams.entries())
       });
 
       // Handle MFA-related errors specifically
@@ -143,6 +190,14 @@ class OAuthService {
       }
 
       if (!code || !state) {
+        // Check if we're in the callback route but missing parameters
+        if (window.location.pathname === '/callback') {
+          // This might be a Lovable environment issue
+          if (this.isInLovableIframe()) {
+            throw new Error('OAuth callback failed in iframe environment. Please complete authentication in the opened tab and return to this page.');
+          }
+        }
+        
         throw new Error('Missing authorization code or state parameter');
       }
 
