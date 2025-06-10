@@ -1,10 +1,11 @@
+
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
   private readonly clientId = '0oan1pa7s3tRupysv1d7'; // Updated with sandbox client ID
   
   // Dynamically determine redirect URI based on environment
-  private getRedirectUri(): string {
+  private getRedirectUriInternal(): string {
     const currentOrigin = window.location.origin;
     
     // Check if we're on GitHub Pages
@@ -65,7 +66,7 @@ class OAuthService {
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       const state = this.generateState();
-      const redirectUri = this.getRedirectUri();
+      const redirectUri = this.getRedirectUriInternal();
 
       console.log('Generated PKCE parameters:');
       console.log('- Code verifier length:', codeVerifier.length);
@@ -93,22 +94,6 @@ class OAuthService {
       console.log('- Client ID:', this.clientId);
       console.log('- Redirect URI:', redirectUri);
       console.log('- Scope:', this.scope);
-      
-      // Check if we're in Lovable iframe - if so, open in new tab
-      if (this.isInLovableIframe()) {
-        console.log('Detected Lovable iframe environment - opening in new tab');
-        console.log('Opening OAuth in new tab:', authUrl.toString());
-        
-        // Open in new tab for Lovable environment
-        const newTab = window.open(authUrl.toString(), '_blank');
-        
-        if (!newTab) {
-          throw new Error('Pop-up blocked. Please allow pop-ups for this site and try again.');
-        }
-        
-        return;
-      }
-      
       console.log('Full Authorization URL:', authUrl.toString());
       
       // Add a small delay to ensure logging completes
@@ -135,7 +120,7 @@ class OAuthService {
       const state = urlParams.get('state');
       const error = urlParams.get('error');
       const errorDescription = urlParams.get('error_description');
-      const redirectUri = this.getRedirectUri();
+      const redirectUri = this.getRedirectUriInternal();
 
       console.log('Callback URL params:', {
         code: code ? 'present' : 'missing',
@@ -154,14 +139,13 @@ class OAuthService {
         
         // Check for MFA-specific errors
         if (error === 'access_denied' && errorDescription?.includes('Policy')) {
-          throw new Error('MFA authentication required. Please complete multi-factor authentication in the popup window.');
+          throw new Error('MFA authentication required. Please complete multi-factor authentication.');
         }
         
         throw new Error(`OAuth error: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`);
       }
 
-      // If we're missing code/state but we're in an iframe, don't immediately throw an error
-      // Instead, provide a helpful message
+      // If we're missing code/state, provide helpful error message
       if (!code || !state) {
         console.log('Missing OAuth parameters, checking environment...');
         
@@ -178,9 +162,7 @@ class OAuthService {
         
         // If we're on the callback route but missing parameters
         if (window.location.pathname === '/callback') {
-          if (this.isInLovableIframe()) {
-            throw new Error('OAuth callback incomplete. The authentication may have completed in the new tab. Please close this tab and return to the original window.');
-          }
+          throw new Error('OAuth callback incomplete. Please try logging in again.');
         }
         
         throw new Error('Missing authorization code or state parameter. Please try logging in again.');
@@ -260,39 +242,12 @@ class OAuthService {
 
   // Get current redirect URI for configuration
   getRedirectUri(): string {
-    return this.getRedirectUri();
+    return this.getRedirectUriInternal();
   }
 
   // Get client ID for configuration display
   getClientId(): string {
     return this.clientId;
-  }
-
-  private generateCodeVerifier(): string {
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    return btoa(String.fromCharCode(...array))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-  }
-
-  // Generate code challenge from verifier
-  private async generateCodeChallenge(verifier: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(verifier);
-    const digest = await crypto.subtle.digest('SHA-256', data);
-    return btoa(String.fromCharCode(...new Uint8Array(digest)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-  }
-
-  // Generate random state parameter
-  private generateState(): string {
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    return btoa(String.fromCharCode(...array)).replace(/[^a-zA-Z0-9]/g, '');
   }
 }
 
