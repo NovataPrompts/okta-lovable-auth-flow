@@ -118,20 +118,22 @@ class OAuthService {
       console.log('🔁 handleCallback() triggered'); // Added as requested
       
       // Robust extraction of OAuth parameters from complex query strings
-      let search = window.location.search;
-      console.log('🔍 Original search string:', search);
-      
-      // Extract the final segment after the last '?' to handle nested paths
-      const parts = search.split('?');
-      const query = parts[parts.length - 1]; // Get last ?segment
-      console.log("🧼 Extracted raw query:", query);
-      
-      const urlParams = new URLSearchParams(query);
-      const code = urlParams.get('code');
-      const state = urlParams.get('state');
+      let rawSearch = window.location.search;
+      console.log("🔍 Raw search string:", rawSearch);
+
+      // Extract the final query segment after the last "?"
+      const querySegment = rawSearch.split('?').pop();
+      console.log("🧼 Cleaned query segment:", querySegment);
+
+      const urlParams = new URLSearchParams(querySegment || "");
+      const code = urlParams.get("code");
+      const state = urlParams.get("state");
       const error = urlParams.get('error');
       const errorDescription = urlParams.get('error_description');
       const redirectUri = this.getRedirectUriInternal();
+
+      console.log("✅ Parsed code:", code);
+      console.log("✅ Parsed state:", state);
 
       console.log('📋 Callback URL analysis:', {
         code: code ? `present (${code.substring(0, 10)}...)` : 'missing',
