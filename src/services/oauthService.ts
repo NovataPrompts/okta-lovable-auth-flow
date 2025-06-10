@@ -117,16 +117,16 @@ class OAuthService {
     try {
       console.log('🔁 handleCallback() triggered'); // Added as requested
       
-      // Handle GitHub Pages redirect format
+      // Robust extraction of OAuth parameters from complex query strings
       let search = window.location.search;
       console.log('🔍 Original search string:', search);
       
-      if (search.startsWith("?callback?")) {
-        search = "?" + search.split("?callback?")[1];
-        console.log('🔧 Modified search string for GitHub Pages format:', search);
-      }
+      // Extract the final segment after the last '?' to handle nested paths
+      const parts = search.split('?');
+      const query = parts[parts.length - 1]; // Get last ?segment
+      console.log("🧼 Extracted raw query:", query);
       
-      const urlParams = new URLSearchParams(search);
+      const urlParams = new URLSearchParams(query);
       const code = urlParams.get('code');
       const state = urlParams.get('state');
       const error = urlParams.get('error');
