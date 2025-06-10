@@ -26,9 +26,17 @@
           var decoded = l.search.slice(1).split('&').map(function(s) { 
             return s.replace(/~and~/g, '&')
           }).join('?');
-          window.history.replaceState(null, null,
-              '/okta-lovable-auth-flow' + decoded + l.hash
-          );
+          
+          // Handle callback route specially to preserve OAuth parameters
+          if (decoded.startsWith('/callback')) {
+            window.history.replaceState(null, null,
+                '/okta-lovable-auth-flow' + decoded + l.hash
+            );
+          } else {
+            window.history.replaceState(null, null,
+                '/okta-lovable-auth-flow' + decoded + l.hash
+            );
+          }
         }
       }(window.location))
     </script>
