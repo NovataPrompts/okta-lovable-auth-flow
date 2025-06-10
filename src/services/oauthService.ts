@@ -115,25 +115,26 @@ class OAuthService {
   // Handle OAuth callback and exchange code for tokens
   async handleCallback(): Promise<{ accessToken: string; idToken?: string }> {
     try {
-      console.log('🔁 handleCallback() triggered'); // Added as requested
+      console.log("🔁 handleCallback() running");
       
-      // Robust extraction of OAuth parameters from complex query strings
-      let rawSearch = window.location.search;
-      console.log("🔍 Raw search string:", rawSearch);
-
-      // Extract the final query segment after the last "?"
-      const querySegment = rawSearch.split('?').pop();
-      console.log("🧼 Cleaned query segment:", querySegment);
-
+      // Show full URL and split breakdown
+      console.log("href:", window.location.href);
+      console.log("search:", window.location.search);
+      
+      // Extract query segment
+      const querySegment = window.location.search.split('?').pop();
+      console.log("🧼 querySegment:", querySegment);
+      
+      // Parse
       const urlParams = new URLSearchParams(querySegment || "");
       const code = urlParams.get("code");
       const state = urlParams.get("state");
+      console.log("✅ Parsed code:", code);
+      console.log("✅ Parsed state:", state);
+      
       const error = urlParams.get('error');
       const errorDescription = urlParams.get('error_description');
       const redirectUri = this.getRedirectUriInternal();
-
-      console.log("✅ Parsed code:", code);
-      console.log("✅ Parsed state:", state);
 
       console.log('📋 Callback URL analysis:', {
         code: code ? `present (${code.substring(0, 10)}...)` : 'missing',
@@ -145,10 +146,6 @@ class OAuthService {
         redirectUri,
         allParams: Object.fromEntries(urlParams.entries())
       });
-
-      // Log code and state values as requested
-      console.log('🔑 Code parameter:', code);
-      console.log('🔑 State parameter:', state);
 
       // Handle MFA-related errors specifically
       if (error) {
