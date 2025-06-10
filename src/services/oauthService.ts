@@ -1,9 +1,22 @@
-
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
   private readonly clientId = '0oan1pa7s3tRupysv1d7'; // Updated with sandbox client ID
-  private readonly redirectUri = 'https://pages.beta.novata.dev/okta-lovable-auth-flow/callback';
+  
+  // Dynamically determine redirect URI based on environment
+  private getRedirectUri(): string {
+    const currentOrigin = window.location.origin;
+    const currentPath = window.location.pathname;
+    
+    // Check if we're on GitHub Pages
+    if (currentOrigin.includes('github.io') || currentOrigin.includes('pages.beta.novata.dev')) {
+      return `${currentOrigin}/okta-lovable-auth-flow/callback`;
+    }
+    
+    // Default for Lovable preview and local development
+    return `${currentOrigin}/callback`;
+  }
+  
   private readonly scope = 'openid profile email';
   
   // Generate cryptographically random string for PKCE
@@ -37,16 +50,18 @@ class OAuthService {
   // Initiate OAuth login flow
   async initiateLogin(): Promise<void> {
     try {
-      console.log('=== Starting OAuth Login Process (GitHub Pages) ===');
+      console.log('=== Starting OAuth Login Process ===');
       
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       const state = this.generateState();
+      const redirectUri = this.getRedirectUri();
 
       console.log('Generated PKCE parameters:');
       console.log('- Code verifier length:', codeVerifier.length);
       console.log('- Code challenge length:', codeChallenge.length);
       console.log('- State length:', state.length);
+      console.log('- Redirect URI:', redirectUri);
 
       // Store PKCE parameters in sessionStorage temporarily (cleared after use)
       sessionStorage.setItem('oauth_code_verifier', codeVerifier);
@@ -55,7 +70,7 @@ class OAuthService {
       const authUrl = new URL(`${this.issuer}/v1/authorize`);
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('client_id', this.clientId);
-      authUrl.searchParams.set('redirect_uri', this.redirectUri);
+      authUrl.searchParams.set('redirect_uri', redirectUri);
       authUrl.searchParams.set('scope', this.scope);
       authUrl.searchParams.set('state', state);
       authUrl.searchParams.set('code_challenge', codeChallenge);
@@ -63,10 +78,10 @@ class OAuthService {
       // Add prompt parameter to ensure MFA is triggered
       authUrl.searchParams.set('prompt', 'login');
 
-      console.log('OAuth Configuration (GitHub Pages):');
+      console.log('OAuth Configuration:');
       console.log('- Issuer:', this.issuer);
       console.log('- Client ID:', this.clientId);
-      console.log('- Redirect URI:', this.redirectUri);
+      console.log('- Redirect URI:', redirectUri);
       console.log('- Scope:', this.scope);
       console.log('- Authorization URL length:', authUrl.toString().length);
       
@@ -102,6 +117,7 @@ class OAuthService {
       const state = urlParams.get('state');
       const error = urlParams.get('error');
       const errorDescription = urlParams.get('error_description');
+      const redirectUri = this.getRedirectUri();
 
       console.log('Callback URL params:', {
         code: code ? 'present' : 'missing',
@@ -109,7 +125,8 @@ class OAuthService {
         error,
         errorDescription,
         currentPath: window.location.pathname,
-        fullUrl: window.location.href
+        fullUrl: window.location.href,
+        redirectUri
       });
 
       // Handle MFA-related errors specifically
@@ -154,7 +171,7 @@ class OAuthService {
           grant_type: 'authorization_code',
           client_id: this.clientId,
           code,
-          redirect_uri: this.redirectUri,
+          redirect_uri: redirectUri,
           code_verifier: codeVerifier,
         }),
       });
@@ -196,7 +213,7 @@ class OAuthService {
 
   // Get current redirect URI for configuration
   getRedirectUri(): string {
-    return this.redirectUri;
+    return this.getRedirectUri();
   }
 
   // Get client ID for configuration display
