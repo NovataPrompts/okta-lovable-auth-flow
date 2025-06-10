@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AuthButton from '@/components/AuthButton';
 import ApiTestPanel from '@/components/ApiTestPanel';
@@ -30,6 +29,7 @@ const Index = () => {
     // If we have OAuth parameters, handle the callback
     if (hasCode && hasState) {
       console.log('Index.tsx - OAuth parameters detected, calling handleCallback');
+      console.log('Calling handleCallback'); // Added as requested
       
       const processCallback = async () => {
         try {

@@ -115,7 +115,7 @@ class OAuthService {
   // Handle OAuth callback and exchange code for tokens
   async handleCallback(): Promise<{ accessToken: string; idToken?: string }> {
     try {
-      console.log('🚀 oauthService.handleCallback() triggered');
+      console.log('🔁 handleCallback() triggered'); // Added as requested
       
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
@@ -134,6 +134,10 @@ class OAuthService {
         redirectUri,
         allParams: Object.fromEntries(urlParams.entries())
       });
+
+      // Log code and state values as requested
+      console.log('🔑 Code parameter:', code);
+      console.log('🔑 State parameter:', state);
 
       // Handle MFA-related errors specifically
       if (error) {
@@ -175,6 +179,8 @@ class OAuthService {
       
     } catch (error) {
       console.error('💥 Error handling OAuth callback:', error);
+      console.error('💥 Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }
@@ -203,8 +209,9 @@ class OAuthService {
       throw new Error('Missing code verifier');
     }
 
+    const tokenEndpoint = `${this.issuer}/v1/token`;
     console.log('📤 Preparing token exchange request:', {
-      tokenEndpoint: `${this.issuer}/v1/token`,
+      tokenEndpoint,
       codeVerifierLength: codeVerifier.length,
       codeLength: code.length,
       redirectUri
@@ -219,55 +226,65 @@ class OAuthService {
       code_verifier: codeVerifier,
     });
 
-    console.log('🌐 Sending POST request to token endpoint...');
-    const tokenResponse = await fetch(`${this.issuer}/v1/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: tokenRequestBody,
-    });
+    console.log('🌐 About to send POST request to token endpoint:', tokenEndpoint);
+    console.log('📝 Request body parameters:', Object.fromEntries(tokenRequestBody.entries()));
+    
+    try {
+      const tokenResponse = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: tokenRequestBody,
+      });
 
-    console.log('📨 Token response received:', {
-      status: tokenResponse.status,
-      statusText: tokenResponse.statusText,
-      ok: tokenResponse.ok
-    });
-
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text();
-      console.error('❌ Token exchange failed:', {
+      console.log('📨 Token response received:', {
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
-        error: errorData
+        ok: tokenResponse.ok,
+        headers: Object.fromEntries(tokenResponse.headers.entries())
+      });
+
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.text();
+        console.error('❌ Token exchange failed:', {
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText,
+          error: errorData
+        });
+        
+        // Handle MFA-related token exchange errors
+        if (tokenResponse.status === 400 && errorData.includes('invalid_grant')) {
+          throw new Error('MFA verification incomplete. Please retry the authentication process.');
+        }
+        
+        throw new Error(`Token exchange failed (${tokenResponse.status}): ${errorData}`);
+      }
+
+      const tokens = await tokenResponse.json();
+      console.log('🎉 Token exchange successful:', {
+        hasAccessToken: !!tokens.access_token,
+        hasIdToken: !!tokens.id_token,
+        tokenType: tokens.token_type,
+        expiresIn: tokens.expires_in,
+        accessTokenLength: tokens.access_token ? tokens.access_token.length : 0
       });
       
-      // Handle MFA-related token exchange errors
-      if (tokenResponse.status === 400 && errorData.includes('invalid_grant')) {
-        throw new Error('MFA verification incomplete. Please retry the authentication process.');
-      }
-      
-      throw new Error(`Token exchange failed (${tokenResponse.status}): ${errorData}`);
+      // Clean up temporary storage
+      sessionStorage.removeItem('oauth_code_verifier');
+      sessionStorage.removeItem('oauth_state');
+      console.log('🧹 Cleaned up temporary storage');
+
+      console.log('📤 Returning tokens to caller for storage in tokenManager');
+      return {
+        accessToken: tokens.access_token,
+        idToken: tokens.id_token,
+      };
+    } catch (fetchError) {
+      console.error('💥 Fetch error during token exchange:', fetchError);
+      console.error('💥 Fetch error details:', fetchError instanceof Error ? fetchError.message : 'Unknown fetch error');
+      throw fetchError;
     }
-
-    const tokens = await tokenResponse.json();
-    console.log('🎉 Token exchange successful:', {
-      hasAccessToken: !!tokens.access_token,
-      hasIdToken: !!tokens.id_token,
-      tokenType: tokens.token_type,
-      expiresIn: tokens.expires_in
-    });
-    
-    // Clean up temporary storage
-    sessionStorage.removeItem('oauth_code_verifier');
-    sessionStorage.removeItem('oauth_state');
-    console.log('🧹 Cleaned up temporary storage');
-
-    console.log('📤 Returning tokens to caller for storage in tokenManager');
-    return {
-      accessToken: tokens.access_token,
-      idToken: tokens.id_token,
-    };
   }
 
   // Get current redirect URI for configuration
