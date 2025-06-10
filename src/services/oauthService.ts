@@ -1,10 +1,11 @@
+
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
   private readonly clientId = '0oan1pa7s3tRupysv1d7'; // Updated with sandbox client ID
   
   // Dynamically determine redirect URI based on environment
-  private getRedirectUri(): string {
+  private determineRedirectUri(): string {
     const currentOrigin = window.location.origin;
     const currentPath = window.location.pathname;
     
@@ -55,7 +56,7 @@ class OAuthService {
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       const state = this.generateState();
-      const redirectUri = this.getRedirectUri();
+      const redirectUri = this.determineRedirectUri();
 
       console.log('Generated PKCE parameters:');
       console.log('- Code verifier length:', codeVerifier.length);
@@ -117,7 +118,7 @@ class OAuthService {
       const state = urlParams.get('state');
       const error = urlParams.get('error');
       const errorDescription = urlParams.get('error_description');
-      const redirectUri = this.getRedirectUri();
+      const redirectUri = this.determineRedirectUri();
 
       console.log('Callback URL params:', {
         code: code ? 'present' : 'missing',
@@ -213,7 +214,7 @@ class OAuthService {
 
   // Get current redirect URI for configuration
   getRedirectUri(): string {
-    return this.getRedirectUri();
+    return this.determineRedirectUri();
   }
 
   // Get client ID for configuration display
