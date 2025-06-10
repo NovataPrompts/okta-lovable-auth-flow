@@ -1,9 +1,8 @@
-
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
   private readonly clientId = '0oan1pa7s3tRupysv1d7'; // Updated with sandbox client ID
-  private readonly redirectUri = `${window.location.origin}/callback`;
+  private readonly redirectUri = 'https://pages.beta.novata.dev/okta-lovable-auth-flow/callback';
   private readonly scope = 'openid profile email';
   
   // Generate cryptographically random string for PKCE
@@ -37,7 +36,7 @@ class OAuthService {
   // Initiate OAuth login flow
   async initiateLogin(): Promise<void> {
     try {
-      console.log('=== Starting OAuth Login Process (Sandbox) ===');
+      console.log('=== Starting OAuth Login Process (GitHub Pages) ===');
       
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
@@ -63,7 +62,7 @@ class OAuthService {
       // Add prompt parameter to ensure MFA is triggered
       authUrl.searchParams.set('prompt', 'login');
 
-      console.log('OAuth Configuration (Sandbox):');
+      console.log('OAuth Configuration (GitHub Pages):');
       console.log('- Issuer:', this.issuer);
       console.log('- Client ID:', this.clientId);
       console.log('- Redirect URI:', this.redirectUri);
