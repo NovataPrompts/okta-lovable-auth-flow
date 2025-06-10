@@ -6,17 +6,17 @@
     <title>Redirect</title>
     <script type="text/javascript">
       // This script takes the current page URL and redirects to the index page
-      // with the current path as a query parameter
+      // with the current path as a query parameter for GitHub Pages SPA
       var pathSegmentsToKeep = 1;
       
       var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      var redirect = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        '/okta-lovable-auth-flow/' + '?/' +
+        l.pathname.slice(1).split('/').slice(1).join('/').replace(/&/g, '~and~') +
         (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+        l.hash;
+      
+      l.replace(redirect);
     </script>
   </head>
   <body>
