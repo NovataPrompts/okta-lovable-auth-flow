@@ -1,0 +1,238 @@
+
+{
+  "project_overview": {
+    "name": "okta-lovable-auth-flow",
+    "description": "React application with Okta OAuth 2.0 + PKCE authentication",
+    "technologies": ["React", "TypeScript", "Vite", "Tailwind CSS", "shadcn/ui"],
+    "deployment": {
+      "preview": "Lovable preview environment (iframe)",
+      "production": "GitHub Pages at pages.beta.novata.dev/okta-lovable-auth-flow/"
+    }
+  },
+  
+  "current_functionality": {
+    "working_features": [
+      "OAuth login initiation (redirects to Okta sandbox)",
+      "PKCE code generation and challenge creation",
+      "State parameter generation for security",
+      "Dynamic redirect URI detection based on environment",
+      "MFA guide component for user education",
+      "Configuration panel showing OAuth settings",
+      "Token management service for storing auth tokens",
+      "Auth state management in React components"
+    ],
+    "broken_features": [
+      "OAuth callback handling - returns 404 on GitHub Pages",
+      "Token exchange after successful Okta authentication",
+      "User remains unauthenticated after completing OAuth flow"
+    ]
+  },
+
+  "okta_configuration": {
+    "issuer": "https://novatacimsandbox.oktapreview.com/oauth2/default",
+    "client_id": "0oan1pa7s3tRupysv1d7",
+    "client_type": "Public (PKCE required)",
+    "redirect_uris": {
+      "lovable_preview": "https://[preview-url]/callback",
+      "github_pages": "https://pages.beta.novata.dev/okta-lovable-auth-flow/callback"
+    },
+    "scope": "openid profile email",
+    "mfa_required": true,
+    "prompt": "login"
+  },
+
+  "primary_issue": {
+    "problem": "404 error when OAuth callback tries to reach /callback route on GitHub Pages",
+    "symptoms": [
+      "User successfully authenticates with Okta (MFA works)",
+      "Okta redirects to callback URL with code and state parameters", 
+      "GitHub Pages returns 404 for /callback route",
+      "User never gets authenticated in the application"
+    ],
+    "root_cause": "GitHub Pages is a static host that doesn't understand SPA routing"
+  },
+
+  "environment_differences": {
+    "lovable_preview": {
+      "works": "Yes - has SPA routing support",
+      "iframe_context": true,
+      "redirect_handling": "Built-in SPA router handles /callback"
+    },
+    "github_pages": {
+      "works": "No - 404 on /callback", 
+      "iframe_context": false,
+      "redirect_handling": "Static hosting, needs 404.html redirect logic"
+    }
+  },
+
+  "attempted_solutions": {
+    "solution_1": {
+      "description": "Updated 404.html and index.html SPA redirect logic",
+      "changes": [
+        "Added special OAuth callback handling in 404.html",
+        "Modified index.html to preserve callback parameters",
+        "Used GitHub Pages SPA pattern with query parameter encoding"
+      ],
+      "result": "Still getting 404 errors",
+      "files_modified": ["public/404.html", "index.html"]
+    },
+    
+    "solution_2": {
+      "description": "Enhanced OAuth service callback detection",
+      "changes": [
+        "Improved URL parameter parsing in handleCallback()",
+        "Added hash parameter fallback detection", 
+        "Enhanced error messages for missing parameters",
+        "Better environment detection logic"
+      ],
+      "result": "Callback logic improved but 404 still occurs before React loads",
+      "files_modified": ["src/services/oauthService.ts"]
+    },
+
+    "solution_3": {
+      "description": "Improved iframe detection and error handling",
+      "changes": [
+        "Better iframe environment detection",
+        "Enhanced error messages for OAuth failures",
+        "Added MFA-specific error handling"
+      ],
+      "result": "Better UX but core 404 issue persists",
+      "files_modified": ["src/components/AuthButton.tsx"]
+    }
+  },
+
+  "github_pages_spa_configuration": {
+    "current_setup": {
+      "base_path": "/okta-lovable-auth-flow/",
+      "vite_config": "base: mode === 'production' ? '/okta-lovable-auth-flow/' : './'",
+      "404_redirect": "Encodes path as query parameter for SPA routing",
+      "index_decode": "Decodes query parameter back to proper path"
+    },
+    "callback_flow": {
+      "expected": "https://pages.beta.novata.dev/okta-lovable-auth-flow/callback?code=...&state=...",
+      "actual_redirect": "404.html processes and redirects to /?/callback&code=...&state=...",
+      "issue": "React router may not be handling the encoded callback route properly"
+    }
+  },
+
+  "technical_analysis": {
+    "oauth_flow_steps": {
+      "step_1": "✅ User clicks login button",
+      "step_2": "✅ Generate PKCE parameters (code_verifier, code_challenge, state)",
+      "step_3": "✅ Redirect to Okta authorization endpoint", 
+      "step_4": "✅ User completes authentication + MFA at Okta",
+      "step_5": "❌ Okta redirects to callback URL - GitHub Pages returns 404",
+      "step_6": "❌ Never reaches React app to process callback",
+      "step_7": "❌ Token exchange never happens",
+      "step_8": "❌ User remains unauthenticated"
+    },
+
+    "routing_analysis": {
+      "app_routes": [
+        "/ (Index page)",
+        "/callback (OAuth callback - handled by Index page)",
+        "/* (NotFound page)"
+      ],
+      "github_pages_issue": "Static hosting doesn't route /callback to React app",
+      "spa_workaround": "404.html should redirect /callback to /?/callback for React router"
+    }
+  },
+
+  "debugging_information": {
+    "console_logs_needed": [
+      "What happens when 404.html processes /callback URL",
+      "What URL does React app receive after 404.html redirect", 
+      "Whether React router is properly handling /?/callback route",
+      "OAuth parameter preservation through the redirect chain"
+    ],
+    
+    "test_scenarios": {
+      "lovable_preview": "Test OAuth flow end-to-end in preview",
+      "github_pages_manual": "Manually navigate to callback URL on GitHub Pages",
+      "parameter_preservation": "Verify code/state params survive 404.html redirect"
+    }
+  },
+
+  "potential_solutions_to_try": {
+    "solution_a": {
+      "approach": "Hash-based routing for OAuth callback",
+      "description": "Use hash fragment (#/callback) instead of path-based routing",
+      "pros": ["Hash fragments don't trigger server requests", "GitHub Pages won't see /callback"],
+      "cons": ["Requires changing Okta redirect URI configuration"],
+      "implementation": "Update redirect URI to use #/callback, modify React router"
+    },
+
+    "solution_b": {
+      "approach": "Fix 404.html redirect logic",
+      "description": "Debug and improve the SPA redirect mechanism",
+      "pros": ["Keeps current OAuth configuration", "Standard SPA pattern"],
+      "cons": ["Complex redirect chain", "Harder to debug"],
+      "implementation": "Add console.log to 404.html, verify parameter encoding"
+    },
+
+    "solution_c": {
+      "approach": "Alternative callback endpoint",
+      "description": "Use a different callback path that GitHub Pages handles better",
+      "pros": ["Simpler routing", "Cleaner URL structure"],
+      "cons": ["Requires Okta configuration change"],
+      "implementation": "Try /oauth-callback or /auth/callback"
+    },
+
+    "solution_d": {
+      "approach": "Base64 encode OAuth parameters",
+      "description": "Encode OAuth parameters to survive multiple redirects",
+      "pros": ["More reliable parameter preservation"],
+      "cons": ["More complex parameter handling"],
+      "implementation": "Modify 404.html to base64 encode, React to decode"
+    }
+  },
+
+  "recommended_next_steps": {
+    "immediate": [
+      "Add console.log statements to 404.html to see what URLs it processes",
+      "Test the exact redirect chain: /callback → 404.html → /?/callback",
+      "Verify OAuth parameters (code, state) survive the redirect",
+      "Check if React router receives the proper callback route"
+    ],
+    
+    "if_404_redirect_works": [
+      "Focus on React router handling of /?/callback",
+      "Ensure AuthButton component processes callback on Index page",
+      "Debug parameter parsing in handleCallback()"
+    ],
+    
+    "if_404_redirect_fails": [
+      "Implement hash-based routing (#/callback)",
+      "Update Okta redirect URI configuration",
+      "Modify React router to handle hash-based callback"
+    ]
+  },
+
+  "code_files_to_examine": {
+    "oauth_logic": [
+      "src/services/oauthService.ts - Core OAuth implementation",
+      "src/services/tokenManager.ts - Token storage and management"
+    ],
+    "routing": [
+      "src/App.tsx - Route definitions",
+      "src/pages/Index.tsx - Main page that handles callback"
+    ],
+    "components": [
+      "src/components/AuthButton.tsx - OAuth UI and callback processing"
+    ],
+    "github_pages": [
+      "public/404.html - SPA redirect logic",
+      "index.html - SPA decode logic",
+      "vite.config.ts - Build configuration"
+    ]
+  },
+
+  "environment_variables_and_config": {
+    "vite_config": {
+      "base_path": "Conditional based on mode",
+      "github_pages_base": "/okta-lovable-auth-flow/"
+    },
+    "no_env_files": "Lovable doesn't use .env files",
+    "oauth_config": "Hardcoded in oauthService.ts"
+  }
+}
