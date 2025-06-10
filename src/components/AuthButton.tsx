@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,7 +40,12 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
 
     // Handle OAuth callback if we're on the callback route
     const handleCallback = async () => {
-      if (window.location.pathname === '/callback' || window.location.search.includes('code=')) {
+      // Only process callback if we have URL parameters indicating an OAuth response
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasOAuthParams = urlParams.has('code') || urlParams.has('error');
+      const isCallbackRoute = window.location.pathname === '/callback';
+      
+      if (isCallbackRoute && hasOAuthParams) {
         setIsLoading(true);
         setError(null);
         
@@ -80,7 +84,6 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
     setShowMfaGuide(false);
     
     try {
-      // Ensure we're doing a full page redirect, not iframe
       console.log('Initiating OAuth login with MFA support...');
       oauthService.initiateLogin();
     } catch (err) {
@@ -154,7 +157,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
             <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
             <div>
               <div className="font-medium">Lovable Environment Detected</div>
-              <div className="text-xs mt-1">OAuth login will open in a new tab for security.</div>
+              <div className="text-xs mt-1">OAuth login will work in this preview.</div>
             </div>
           </div>
         )}
@@ -202,7 +205,7 @@ const AuthButton: React.FC<AuthButtonProps> = ({ onAuthChange }) => {
             type="button"
           >
             <LogIn className="h-4 w-4 mr-2" />
-            {isInIframe() ? 'Login with Okta (Opens New Tab)' : 'Login with Okta (MFA)'}
+            {isInIframe() ? 'Login with Okta (MFA)' : 'Login with Okta (MFA)'}
           </Button>
         )}
       </CardContent>
