@@ -1,3 +1,4 @@
+
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
@@ -106,7 +107,9 @@ class OAuthService {
         code: code ? 'present' : 'missing',
         state: state ? 'present' : 'missing',
         error,
-        errorDescription
+        errorDescription,
+        currentPath: window.location.pathname,
+        fullUrl: window.location.href
       });
 
       // Handle MFA-related errors specifically

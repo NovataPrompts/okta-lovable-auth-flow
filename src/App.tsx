@@ -14,7 +14,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename="/okta-lovable-auth-flow">
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/callback" element={<Index />} />
