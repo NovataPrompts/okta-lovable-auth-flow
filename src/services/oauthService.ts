@@ -117,7 +117,16 @@ class OAuthService {
     try {
       console.log('🔁 handleCallback() triggered'); // Added as requested
       
-      const urlParams = new URLSearchParams(window.location.search);
+      // Handle GitHub Pages redirect format
+      let search = window.location.search;
+      console.log('🔍 Original search string:', search);
+      
+      if (search.startsWith("?/callback?")) {
+        search = "?" + search.split("?/callback?")[1];
+        console.log('🔧 Modified search string for GitHub Pages format:', search);
+      }
+      
+      const urlParams = new URLSearchParams(search);
       const code = urlParams.get('code');
       const state = urlParams.get('state');
       const error = urlParams.get('error');
