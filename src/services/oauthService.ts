@@ -115,6 +115,8 @@ class OAuthService {
   // Handle OAuth callback and exchange code for tokens
   async handleCallback(): Promise<{ accessToken: string; idToken?: string }> {
     try {
+      console.log('🚀 oauthService.handleCallback() triggered');
+      
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       const state = urlParams.get('state');
@@ -122,9 +124,9 @@ class OAuthService {
       const errorDescription = urlParams.get('error_description');
       const redirectUri = this.getRedirectUriInternal();
 
-      console.log('Callback URL params:', {
-        code: code ? 'present' : 'missing',
-        state: state ? 'present' : 'missing',
+      console.log('📋 Callback URL analysis:', {
+        code: code ? `present (${code.substring(0, 10)}...)` : 'missing',
+        state: state ? `present (${state.substring(0, 10)}...)` : 'missing',
         error,
         errorDescription,
         currentPath: window.location.pathname,
@@ -135,7 +137,7 @@ class OAuthService {
 
       // Handle MFA-related errors specifically
       if (error) {
-        console.error('OAuth error from Okta:', error, errorDescription);
+        console.error('❌ OAuth error from Okta:', error, errorDescription);
         
         // Check for MFA-specific errors
         if (error === 'access_denied' && errorDescription?.includes('Policy')) {
@@ -147,7 +149,7 @@ class OAuthService {
 
       // If we're missing code/state, provide helpful error message
       if (!code || !state) {
-        console.log('Missing OAuth parameters, checking environment...');
+        console.log('⚠️ Missing OAuth parameters, checking environment...');
         
         // Check if there might be OAuth parameters in the hash (some OAuth flows use fragments)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -155,7 +157,7 @@ class OAuthService {
         const hashState = hashParams.get('state');
         
         if (hashCode && hashState) {
-          console.log('Found OAuth parameters in URL hash, using those instead');
+          console.log('🔄 Found OAuth parameters in URL hash, using those instead');
           // Use hash parameters if available
           return this.exchangeCodeForTokens(hashCode, hashState, redirectUri);
         }
@@ -168,52 +170,73 @@ class OAuthService {
         throw new Error('Missing authorization code or state parameter. Please try logging in again.');
       }
 
+      console.log('✅ OAuth parameters validated, proceeding to token exchange');
       return this.exchangeCodeForTokens(code, state, redirectUri);
       
     } catch (error) {
-      console.error('Error handling OAuth callback:', error);
+      console.error('💥 Error handling OAuth callback:', error);
       throw error;
     }
   }
 
   // Separate method to handle the token exchange
   private async exchangeCodeForTokens(code: string, state: string, redirectUri: string): Promise<{ accessToken: string; idToken?: string }> {
+    console.log('🔄 Starting token exchange process...');
+    
     // Verify state parameter
     const storedState = sessionStorage.getItem('oauth_state');
+    console.log('🔐 State verification:', {
+      receivedState: state ? `${state.substring(0, 10)}...` : 'missing',
+      storedState: storedState ? `${storedState.substring(0, 10)}...` : 'missing',
+      matches: state === storedState
+    });
+    
     if (state !== storedState) {
-      console.error('State mismatch:', { received: state, stored: storedState });
+      console.error('❌ State mismatch:', { received: state, stored: storedState });
       throw new Error('Invalid state parameter');
     }
 
     // Get code verifier
     const codeVerifier = sessionStorage.getItem('oauth_code_verifier');
     if (!codeVerifier) {
+      console.error('❌ Missing code verifier in sessionStorage');
       throw new Error('Missing code verifier');
     }
 
-    console.log('Exchanging code for tokens...');
-    console.log('Token endpoint:', `${this.issuer}/v1/token`);
+    console.log('📤 Preparing token exchange request:', {
+      tokenEndpoint: `${this.issuer}/v1/token`,
+      codeVerifierLength: codeVerifier.length,
+      codeLength: code.length,
+      redirectUri
+    });
 
     // Exchange code for tokens
+    const tokenRequestBody = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: this.clientId,
+      code,
+      redirect_uri: redirectUri,
+      code_verifier: codeVerifier,
+    });
+
+    console.log('🌐 Sending POST request to token endpoint...');
     const tokenResponse = await fetch(`${this.issuer}/v1/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: this.clientId,
-        code,
-        redirect_uri: redirectUri,
-        code_verifier: codeVerifier,
-      }),
+      body: tokenRequestBody,
     });
 
-    console.log('Token response status:', tokenResponse.status);
+    console.log('📨 Token response received:', {
+      status: tokenResponse.status,
+      statusText: tokenResponse.statusText,
+      ok: tokenResponse.ok
+    });
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
-      console.error('Token exchange failed:', {
+      console.error('❌ Token exchange failed:', {
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
         error: errorData
@@ -228,12 +251,19 @@ class OAuthService {
     }
 
     const tokens = await tokenResponse.json();
-    console.log('Token exchange successful');
+    console.log('🎉 Token exchange successful:', {
+      hasAccessToken: !!tokens.access_token,
+      hasIdToken: !!tokens.id_token,
+      tokenType: tokens.token_type,
+      expiresIn: tokens.expires_in
+    });
     
     // Clean up temporary storage
     sessionStorage.removeItem('oauth_code_verifier');
     sessionStorage.removeItem('oauth_state');
+    console.log('🧹 Cleaned up temporary storage');
 
+    console.log('📤 Returning tokens to caller for storage in tokenManager');
     return {
       accessToken: tokens.access_token,
       idToken: tokens.id_token,

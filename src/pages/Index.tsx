@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AuthButton from '@/components/AuthButton';
 import ApiTestPanel from '@/components/ApiTestPanel';
 import ConfigPanel from '@/components/ConfigPanel';
 import { Separator } from '@/components/ui/separator';
+import { oauthService } from '@/services/oauthService';
+import { tokenManager } from '@/services/tokenManager';
 
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -11,6 +13,46 @@ const Index = () => {
   const handleAuthChange = (authState: boolean) => {
     setIsAuthenticated(authState);
   };
+
+  useEffect(() => {
+    // Check for OAuth callback parameters on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasCode = urlParams.has('code');
+    const hasState = urlParams.has('state');
+    
+    console.log('Index.tsx useEffect - Checking for OAuth parameters:', {
+      hasCode,
+      hasState,
+      currentUrl: window.location.href,
+      searchParams: window.location.search
+    });
+
+    // If we have OAuth parameters, handle the callback
+    if (hasCode && hasState) {
+      console.log('Index.tsx - OAuth parameters detected, calling handleCallback');
+      
+      const processCallback = async () => {
+        try {
+          const tokens = await oauthService.handleCallback();
+          console.log('Index.tsx - OAuth callback successful, storing token');
+          tokenManager.setToken(tokens.accessToken);
+          
+          // Clear URL parameters after successful authentication
+          window.history.replaceState({}, document.title, '/');
+          console.log('Index.tsx - URL cleaned, redirected to home');
+        } catch (error) {
+          console.error('Index.tsx - OAuth callback failed:', error);
+        }
+      };
+
+      processCallback();
+    }
+
+    // Set initial auth state
+    const authState = tokenManager.isAuthenticated();
+    setIsAuthenticated(authState);
+    handleAuthChange(authState);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
