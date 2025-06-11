@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AuthButton from '@/components/AuthButton';
 import ApiTestPanel from '@/components/ApiTestPanel';
@@ -13,39 +14,38 @@ const Index = () => {
     setIsAuthenticated(authState);
   };
 
-  useEffect(() => {
-    // Check for OAuth callback parameters on page load
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasCode = urlParams.has('code');
-    const hasState = urlParams.has('state');
-    
-    console.log('Index.tsx useEffect - Checking for OAuth parameters:', {
-      hasCode,
-      hasState,
-      currentUrl: window.location.href,
-      searchParams: window.location.search
-    });
-
-    // If we have OAuth parameters, handle the callback
-    if (hasCode && hasState) {
-      console.log('Index.tsx - OAuth parameters detected, calling handleCallback');
-      console.log('Calling handleCallback'); // Added as requested
+  const handleCallback = async () => {
+    try {
+      const tokens = await oauthService.handleCallback();
+      console.log('Index.tsx - OAuth callback successful, storing token');
+      tokenManager.setToken(tokens.accessToken);
       
-      const processCallback = async () => {
-        try {
-          const tokens = await oauthService.handleCallback();
-          console.log('Index.tsx - OAuth callback successful, storing token');
-          tokenManager.setToken(tokens.accessToken);
-          
-          // Clear URL parameters after successful authentication
-          window.history.replaceState({}, document.title, '/');
-          console.log('Index.tsx - URL cleaned, redirected to home');
-        } catch (error) {
-          console.error('Index.tsx - OAuth callback failed:', error);
-        }
-      };
+      // Clear URL parameters after successful authentication
+      window.history.replaceState({}, document.title, '/');
+      console.log('Index.tsx - URL cleaned, redirected to home');
+    } catch (error) {
+      console.error('Index.tsx - OAuth callback failed:', error);
+    }
+  };
 
-      processCallback();
+  useEffect(() => {
+    console.log("🌍 Checking OAuth params on load...");
+    try {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      const state = url.searchParams.get("state");
+      console.log("✅ Parsed via URL object:");
+      console.log("code:", code);
+      console.log("state:", state);
+
+      if (code) {
+        console.log("🚀 Code exists, calling handleCallback()");
+        handleCallback();
+      } else {
+        console.log("⛔ No code found, skipping callback");
+      }
+    } catch (err) {
+      console.error("💥 Error parsing URL:", err);
     }
 
     // Set initial auth state
