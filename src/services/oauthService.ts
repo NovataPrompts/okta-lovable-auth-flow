@@ -1,4 +1,3 @@
-
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
@@ -121,19 +120,17 @@ class OAuthService {
       console.log("href:", window.location.href);
       console.log("search:", window.location.search);
       
-      // Extract query segment
-      const querySegment = window.location.search.split('?').pop();
-      console.log("🧼 querySegment:", querySegment);
+      // Use URL constructor for robust parameter extraction
+      const fullUrl = new URL(window.location.href);
+      const code = fullUrl.searchParams.get("code");
+      const state = fullUrl.searchParams.get("state");
+
+      console.log("🌐 Parsed using URL object:");
+      console.log("code:", code);
+      console.log("state:", state);
       
-      // Parse
-      const urlParams = new URLSearchParams(querySegment || "");
-      const code = urlParams.get("code");
-      const state = urlParams.get("state");
-      console.log("✅ Parsed code:", code);
-      console.log("✅ Parsed state:", state);
-      
-      const error = urlParams.get('error');
-      const errorDescription = urlParams.get('error_description');
+      const error = fullUrl.searchParams.get('error');
+      const errorDescription = fullUrl.searchParams.get('error_description');
       const redirectUri = this.getRedirectUriInternal();
 
       console.log('📋 Callback URL analysis:', {
@@ -144,7 +141,7 @@ class OAuthService {
         currentPath: window.location.pathname,
         fullUrl: window.location.href,
         redirectUri,
-        allParams: Object.fromEntries(urlParams.entries())
+        allParams: Object.fromEntries(fullUrl.searchParams.entries())
       });
 
       // Handle MFA-related errors specifically
