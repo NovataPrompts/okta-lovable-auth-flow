@@ -6,11 +6,21 @@
     <title>Redirecting...</title>
     <script>
       (function () {
-        const fullPath = location.pathname + location.search + location.hash;
-        const cleaned = fullPath.replace(/^\//, '');  // Remove leading slash
-        const newUrl = '/okta-lovable-auth-flow/?' + cleaned;
-        console.log('✅ 404 fallback triggered. Redirecting to:', newUrl);
-        window.location.replace(newUrl);
+        const url = new URL(window.location.href);
+
+        // Try to extract code and state from any embedded query string
+        const rawQuery = url.search || "";
+        const match = rawQuery.match(/code=([^&]+).*state=([^&]+)/);
+        if (match) {
+          const code = match[1];
+          const state = match[2];
+          const cleanedRedirect = `/okta-lovable-auth-flow/?code=${code}&state=${state}`;
+          console.log("🔁 Redirecting to cleaned OAuth callback:", cleanedRedirect);
+          window.location.replace(cleanedRedirect);
+        } else {
+          // fallback to home
+          window.location.replace('/okta-lovable-auth-flow/');
+        }
       })();
     </script>
   </head>
