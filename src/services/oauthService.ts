@@ -1,19 +1,12 @@
+
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
-  private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
-  private readonly clientId = '0oan1pa7s3tRupysv1d7'; // Updated with sandbox client ID
+  private readonly issuer = 'https://novata.okta.com/oauth2/default';
+  private readonly clientId = '0oa123example456Id';
   
   // Dynamically determine redirect URI based on environment
   private getRedirectUriInternal(): string {
-    const currentOrigin = window.location.origin;
-    
-    // Check if we're on GitHub Pages
-    if (currentOrigin.includes('github.io') || currentOrigin.includes('pages.beta.novata.dev')) {
-      return `${currentOrigin}/okta-lovable-auth-flow/callback`;
-    }
-    
-    // Default for Lovable preview and local development
-    return `${currentOrigin}/callback`;
+    return `${window.location.origin}/login/callback`;
   }
   
   private readonly scope = 'openid profile email';
@@ -99,7 +92,7 @@ class OAuthService {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // Force a full page redirect (not iframe)
-      console.log('Performing full page redirect to Okta sandbox...');
+      console.log('Performing full page redirect to Okta...');
       
       // Try location.replace instead of assign to ensure no back button issues
       window.location.replace(authUrl.toString());
@@ -172,7 +165,7 @@ class OAuthService {
         }
         
         // If we're on the callback route but missing parameters
-        if (window.location.pathname === '/callback') {
+        if (window.location.pathname === '/login/callback') {
           throw new Error('OAuth callback incomplete. Please try logging in again.');
         }
         
@@ -274,6 +267,17 @@ class OAuthService {
         expiresIn: tokens.expires_in,
         accessTokenLength: tokens.access_token ? tokens.access_token.length : 0
       });
+
+      // Decode and log token contents
+      if (tokens.access_token) {
+        try {
+          const parts = tokens.access_token.split(".");
+          console.log("🔍 Token Header:", JSON.parse(atob(parts[0])));
+          console.log("🔍 Token Payload:", JSON.parse(atob(parts[1])));
+        } catch (decodeError) {
+          console.error('❌ Error decoding token:', decodeError);
+        }
+      }
       
       // Clean up temporary storage
       sessionStorage.removeItem('oauth_code_verifier');
