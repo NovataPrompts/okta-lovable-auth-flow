@@ -1,8 +1,8 @@
 
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
-  private readonly issuer = 'https://novata.okta.com/oauth2/default';
-  private readonly clientId = '0oa123example456Id';
+  private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
+  private readonly clientId = '0oan1pa7s3tRupysv1d7';
   
   // Dynamically determine redirect URI based on environment
   private getRedirectUriInternal(): string {
@@ -46,6 +46,25 @@ class OAuthService {
     const array = new Uint8Array(16);
     crypto.getRandomValues(array);
     return btoa(String.fromCharCode(...array)).replace(/[^a-zA-Z0-9]/g, '');
+  }
+
+  // Decode and log JWT token parts
+  private decodeAndLogToken(token: string, tokenType: string): void {
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const header = JSON.parse(atob(parts[0]));
+        const payload = JSON.parse(atob(parts[1]));
+        
+        console.log(`🔍 ${tokenType} Token Header:`, header);
+        console.log(`🔍 ${tokenType} Token Payload:`, payload);
+        console.log(`🔍 ${tokenType} Token issued by:`, payload.iss);
+        console.log(`🔍 ${tokenType} Token audience:`, payload.aud);
+        console.log(`🔍 ${tokenType} Token expires at:`, new Date(payload.exp * 1000).toISOString());
+      }
+    } catch (decodeError) {
+      console.error(`❌ Error decoding ${tokenType} token:`, decodeError);
+    }
   }
 
   // Initiate OAuth login flow
@@ -268,15 +287,13 @@ class OAuthService {
         accessTokenLength: tokens.access_token ? tokens.access_token.length : 0
       });
 
-      // Decode and log token contents
+      // Decode and log token contents as requested
       if (tokens.access_token) {
-        try {
-          const parts = tokens.access_token.split(".");
-          console.log("🔍 Token Header:", JSON.parse(atob(parts[0])));
-          console.log("🔍 Token Payload:", JSON.parse(atob(parts[1])));
-        } catch (decodeError) {
-          console.error('❌ Error decoding token:', decodeError);
-        }
+        this.decodeAndLogToken(tokens.access_token, 'Access');
+      }
+      
+      if (tokens.id_token) {
+        this.decodeAndLogToken(tokens.id_token, 'ID');
       }
       
       // Clean up temporary storage
