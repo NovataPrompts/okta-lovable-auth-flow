@@ -1,11 +1,12 @@
-
 // OAuth 2.0 with PKCE service for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
   private readonly clientId = '0oan1pa7s3tRupysv1d7';
   private readonly redirectUri = 'https://pages.beta.novata.dev/okta-lovable-auth-flow/callback';
   
-  private readonly scope = 'openid profile email';
+  // Explicitly define scopes as array for clarity
+  private readonly scopes = ['openid', 'profile', 'email'];
+  private readonly scope = this.scopes.join(' '); // Space-separated for OAuth spec
   
   // Check if we're in Lovable iframe environment
   private isInLovableIframe(): boolean {
@@ -57,6 +58,14 @@ class OAuthService {
         console.log(`🔍 ${tokenType} Token issued by:`, payload.iss);
         console.log(`🔍 ${tokenType} Token audience:`, payload.aud);
         console.log(`🔍 ${tokenType} Token expires at:`, new Date(payload.exp * 1000).toISOString());
+        
+        // Log scopes specifically to verify they're included
+        if (payload.scp) {
+          console.log(`🔍 ${tokenType} Token scopes (scp):`, payload.scp);
+        }
+        if (payload.scope) {
+          console.log(`🔍 ${tokenType} Token scopes (scope):`, payload.scope);
+        }
       }
     } catch (decodeError) {
       console.error(`❌ Error decoding ${tokenType} token:`, decodeError);
@@ -109,6 +118,7 @@ class OAuthService {
       console.log('- Code challenge length:', codeChallenge.length);
       console.log('- State length:', state.length);
       console.log('- Redirect URI:', this.redirectUri);
+      console.log('- Requested scopes:', this.scopes);
 
       // Store PKCE parameters in sessionStorage temporarily (cleared after use)
       sessionStorage.setItem('oauth_code_verifier', codeVerifier);
@@ -118,7 +128,7 @@ class OAuthService {
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('client_id', this.clientId);
       authUrl.searchParams.set('redirect_uri', this.redirectUri);
-      authUrl.searchParams.set('scope', this.scope);
+      authUrl.searchParams.set('scope', this.scope); // Space-separated scopes
       authUrl.searchParams.set('state', state);
       authUrl.searchParams.set('code_challenge', codeChallenge);
       authUrl.searchParams.set('code_challenge_method', 'S256');
@@ -129,7 +139,8 @@ class OAuthService {
       console.log('- Issuer:', this.issuer);
       console.log('- Client ID:', this.clientId);
       console.log('- Redirect URI:', this.redirectUri);
-      console.log('- Scope:', this.scope);
+      console.log('- Scope (space-separated):', this.scope);
+      console.log('- Individual scopes:', this.scopes);
       console.log('Full Authorization URL:', authUrl.toString());
       
       // Add a small delay to ensure logging completes
@@ -255,16 +266,18 @@ class OAuthService {
       tokenEndpoint,
       codeVerifierLength: codeVerifier.length,
       codeLength: code.length,
-      redirectUri: this.redirectUri
+      redirectUri: this.redirectUri,
+      requestedScope: this.scope
     });
 
-    // Exchange code for tokens
+    // Exchange code for tokens - include scope in token request
     const tokenRequestBody = new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: this.clientId,
       code,
       redirect_uri: this.redirectUri,
       code_verifier: codeVerifier,
+      scope: this.scope, // Explicitly include scopes in token request
     });
 
     console.log('🌐 About to send POST request to token endpoint:', tokenEndpoint);
@@ -308,7 +321,8 @@ class OAuthService {
         hasIdToken: !!tokens.id_token,
         tokenType: tokens.token_type,
         expiresIn: tokens.expires_in,
-        accessTokenLength: tokens.access_token ? tokens.access_token.length : 0
+        accessTokenLength: tokens.access_token ? tokens.access_token.length : 0,
+        scope: tokens.scope // Log the returned scope from token response
       });
 
       // Decode and log token contents as requested
