@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,10 +14,10 @@ const ConfigPanel: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Settings className="h-5 w-5" />
-          <span>OAuth Configuration (Production)</span>
+          <span>OAuth Configuration (Sandbox)</span>
         </CardTitle>
         <CardDescription>
-          Current OAuth 2.0 + PKCE configuration for production environment
+          Current OAuth 2.0 + PKCE configuration for sandbox environment
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -26,10 +25,10 @@ const ConfigPanel: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <Globe className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium">Okta Production Issuer</span>
+              <span className="text-sm font-medium">Okta Sandbox Issuer</span>
             </div>
             <code className="block text-xs bg-gray-100 p-2 rounded border">
-              https://novata.okta.com/oauth2/default
+              https://novatacimsandbox.oktapreview.com/oauth2/default
             </code>
           </div>
 
@@ -38,7 +37,7 @@ const ConfigPanel: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <Key className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium">Production Client ID</span>
+              <span className="text-sm font-medium">Sandbox Client ID</span>
             </div>
             <code className="block text-xs bg-gray-100 p-2 rounded border">
               {clientId}
@@ -56,7 +55,7 @@ const ConfigPanel: React.FC = () => {
               {redirectUri}
             </code>
             <p className="text-xs text-muted-foreground">
-              Configure this URI in your Okta production application settings
+              Configure this URI in your Okta sandbox application settings
             </p>
           </div>
 
@@ -78,10 +77,10 @@ const ConfigPanel: React.FC = () => {
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-          <h4 className="text-sm font-medium text-blue-800 mb-2">Production Setup Instructions</h4>
+          <h4 className="text-sm font-medium text-blue-800 mb-2">Sandbox Setup Instructions</h4>
           <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Production client ID is configured</li>
-            <li>Add the redirect URI to your Okta production app configuration</li>
+            <li>Sandbox client ID is configured</li>
+            <li>Add the redirect URI to your Okta sandbox app configuration</li>
             <li>Ensure the Okta app is configured as a "Public" client type</li>
             <li>Enable PKCE in your Okta application settings</li>
             <li>Configure MFA policies for enhanced security</li>
