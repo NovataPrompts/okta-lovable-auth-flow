@@ -1,5 +1,5 @@
 
-// OAuth 2.0 with implicit flow for Okta authentication with MFA support
+// OAuth 2.0 with Authorization Code + PKCE flow for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
   private readonly clientId = '0oan1pa7s3tRupysv1d7';
@@ -25,11 +25,22 @@ class OAuthService {
     return btoa(String.fromCharCode(...array)).replace(/[^a-zA-Z0-9]/g, '');
   }
 
-  // Generate random nonce parameter for implicit flow
-  private generateNonce(): string {
-    const array = new Uint8Array(16);
+  // Generate PKCE code verifier
+  private generateCodeVerifier(): string {
+    const array = new Uint8Array(32);
     crypto.getRandomValues(array);
     return btoa(String.fromCharCode(...array)).replace(/[^a-zA-Z0-9]/g, '');
+  }
+
+  // Generate PKCE code challenge from verifier
+  private async generateCodeChallenge(verifier: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(verifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
   }
 
   // Decode and log JWT token parts
@@ -89,33 +100,36 @@ class OAuthService {
     }
   }
 
-  // Initiate OAuth login flow with implicit grant
+  // Initiate OAuth login flow with Authorization Code + PKCE
   async initiateLogin(): Promise<void> {
     try {
-      console.log('=== Starting OAuth Implicit Flow Login Process ===');
+      console.log('=== Starting OAuth Authorization Code + PKCE Flow ===');
       console.log('Environment check - In iframe:', this.isInLovableIframe());
       console.log('Current URL:', window.location.href);
       
       const state = this.generateState();
-      const nonce = this.generateNonce();
+      const codeVerifier = this.generateCodeVerifier();
+      const codeChallenge = await this.generateCodeChallenge(codeVerifier);
 
       console.log('Generated OAuth parameters:');
       console.log('- State length:', state.length);
-      console.log('- Nonce length:', nonce.length);
+      console.log('- Code verifier length:', codeVerifier.length);
+      console.log('- Code challenge length:', codeChallenge.length);
       console.log('- Redirect URI:', this.redirectUri);
       console.log('- Requested scopes:', this.scopes);
 
-      // Store state and nonce in sessionStorage for validation
+      // Store state and code verifier in sessionStorage for validation
       sessionStorage.setItem('oauth_state', state);
-      sessionStorage.setItem('oauth_nonce', nonce);
+      sessionStorage.setItem('oauth_code_verifier', codeVerifier);
 
       const authUrl = new URL(`${this.issuer}/v1/authorize`);
-      authUrl.searchParams.set('response_type', 'token id_token'); // Implicit flow for both tokens
+      authUrl.searchParams.set('response_type', 'code'); // Authorization Code flow
       authUrl.searchParams.set('client_id', this.clientId);
       authUrl.searchParams.set('redirect_uri', this.redirectUri);
       authUrl.searchParams.set('scope', this.scope); // Space-separated scopes
       authUrl.searchParams.set('state', state);
-      authUrl.searchParams.set('nonce', nonce);
+      authUrl.searchParams.set('code_challenge', codeChallenge);
+      authUrl.searchParams.set('code_challenge_method', 'S256'); // PKCE with SHA256
       // Add prompt parameter to ensure MFA is triggered
       authUrl.searchParams.set('prompt', 'login');
 
@@ -123,9 +137,10 @@ class OAuthService {
       console.log('- Issuer:', this.issuer);
       console.log('- Client ID:', this.clientId);
       console.log('- Redirect URI:', this.redirectUri);
-      console.log('- Response Type: token id_token (implicit flow)');
+      console.log('- Response Type: code (Authorization Code + PKCE flow)');
       console.log('- Scope (space-separated):', this.scope);
       console.log('- Individual scopes:', this.scopes);
+      console.log('- PKCE Challenge Method: S256');
       console.log('Full Authorization URL:', authUrl.toString());
       
       // Add a small delay to ensure logging completes
@@ -144,43 +159,33 @@ class OAuthService {
     }
   }
 
-  // Handle OAuth callback and extract tokens from URL fragment (implicit flow)
+  // Handle OAuth callback and exchange code for tokens (Authorization Code + PKCE flow)
   async handleCallback(): Promise<{ accessToken: string; idToken?: string }> {
     try {
-      console.log("🔁 handleCallback() running for implicit flow");
+      console.log("🔁 handleCallback() running for Authorization Code + PKCE flow");
       
-      // In implicit flow, tokens are returned in the URL fragment (hash), not query params
-      console.log("href:", window.location.href);
-      console.log("hash:", window.location.hash);
-      
-      // Parse tokens from URL fragment
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get("access_token");
-      const idToken = hashParams.get("id_token");
-      const state = hashParams.get("state");
-      const tokenType = hashParams.get("token_type");
-      const expiresIn = hashParams.get("expires_in");
+      // In Authorization Code flow, we get a code in query parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
+      const state = urlParams.get("state");
+      const error = urlParams.get('error');
+      const errorDescription = urlParams.get('error_description');
 
-      console.log("🌐 Parsed from URL hash:");
-      console.log("access_token:", accessToken ? `present (${accessToken.substring(0, 10)}...)` : 'missing');
-      console.log("id_token:", idToken ? `present (${idToken.substring(0, 10)}...)` : 'missing');
+      console.log("🌐 Parsed from URL query:");
+      console.log("code:", code ? `present (${code.substring(0, 10)}...)` : 'missing');
       console.log("state:", state ? `present (${state.substring(0, 10)}...)` : 'missing');
-      console.log("token_type:", tokenType);
-      console.log("expires_in:", expiresIn);
+      console.log("error:", error);
+      console.log("error_description:", errorDescription);
       
-      const error = hashParams.get('error');
-      const errorDescription = hashParams.get('error_description');
-
       console.log('📋 Callback URL analysis:', {
-        accessToken: accessToken ? `present (${accessToken.substring(0, 10)}...)` : 'missing',
-        idToken: idToken ? `present (${idToken.substring(0, 10)}...)` : 'missing',
+        code: code ? `present (${code.substring(0, 10)}...)` : 'missing',
         state: state ? `present (${state.substring(0, 10)}...)` : 'missing',
         error,
         errorDescription,
         currentPath: window.location.pathname,
         fullUrl: window.location.href,
         redirectUri: this.redirectUri,
-        allParams: Object.fromEntries(hashParams.entries())
+        allParams: Object.fromEntries(urlParams.entries())
       });
 
       // Handle MFA-related errors specifically
@@ -195,19 +200,10 @@ class OAuthService {
         throw new Error(`OAuth error: ${error}${errorDescription ? ` - ${errorDescription}` : ''}`);
       }
 
-      // Verify we have the required access token
-      if (!accessToken) {
-        console.log('⚠️ Missing access token in URL fragment');
-        
-        // Check if there might be OAuth parameters in the query string (fallback)
-        const queryParams = new URLSearchParams(window.location.search);
-        const queryCode = queryParams.get('code');
-        
-        if (queryCode) {
-          throw new Error('Received authorization code instead of access token. The flow may be configured incorrectly.');
-        }
-        
-        throw new Error('Missing access token in callback. Please try logging in again.');
+      // Verify we have the required authorization code
+      if (!code) {
+        console.log('⚠️ Missing authorization code in URL query parameters');
+        throw new Error('Missing authorization code in callback. Please try logging in again.');
       }
 
       // Verify state parameter
@@ -223,37 +219,70 @@ class OAuthService {
         throw new Error('Invalid state parameter');
       }
 
-      console.log('🎉 Token extraction successful:', {
-        hasAccessToken: !!accessToken,
-        hasIdToken: !!idToken,
-        tokenType: tokenType,
-        expiresIn: expiresIn,
-        accessTokenLength: accessToken ? accessToken.length : 0
+      // Get stored code verifier for PKCE
+      const codeVerifier = sessionStorage.getItem('oauth_code_verifier');
+      if (!codeVerifier) {
+        console.error('❌ Missing code verifier in session storage');
+        throw new Error('Missing PKCE code verifier');
+      }
+
+      console.log('🔄 Exchanging authorization code for tokens...');
+
+      // Exchange authorization code for tokens
+      const tokenResponse = await fetch(`${this.issuer}/v1/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: this.clientId,
+          code: code,
+          redirect_uri: this.redirectUri,
+          code_verifier: codeVerifier, // PKCE verification
+        }),
+      });
+
+      console.log('📡 Token exchange response status:', tokenResponse.status);
+
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        console.error('❌ Token exchange failed:', errorText);
+        throw new Error(`Token exchange failed: ${errorText}`);
+      }
+
+      const tokens = await tokenResponse.json();
+      console.log('🎉 Token exchange successful:', {
+        hasAccessToken: !!tokens.access_token,
+        hasIdToken: !!tokens.id_token,
+        tokenType: tokens.token_type,
+        expiresIn: tokens.expires_in,
+        scope: tokens.scope
       });
 
       // Decode and log token contents as requested
-      if (accessToken) {
+      if (tokens.access_token) {
         console.log('🔍 Decoding ACCESS TOKEN (primary focus):');
-        this.decodeAndLogToken(accessToken, 'Access');
+        this.decodeAndLogToken(tokens.access_token, 'Access');
         
         // Call Novata API /me endpoint with the access token
-        await this.callNovataMe(accessToken);
+        await this.callNovataMe(tokens.access_token);
       }
       
-      if (idToken) {
+      if (tokens.id_token) {
         console.log('🔍 Decoding ID TOKEN:');
-        this.decodeAndLogToken(idToken, 'ID');
+        this.decodeAndLogToken(tokens.id_token, 'ID');
       }
       
       // Clean up temporary storage
       sessionStorage.removeItem('oauth_state');
-      sessionStorage.removeItem('oauth_nonce');
+      sessionStorage.removeItem('oauth_code_verifier');
       console.log('🧹 Cleaned up temporary storage');
 
       console.log('📤 Returning tokens to caller for storage in tokenManager');
       return {
-        accessToken: accessToken,
-        idToken: idToken || undefined,
+        accessToken: tokens.access_token,
+        idToken: tokens.id_token || undefined,
       };
       
     } catch (error) {

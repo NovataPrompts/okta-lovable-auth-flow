@@ -18,7 +18,7 @@ const ConfigPanel: React.FC = () => {
           <span>OAuth Configuration (Sandbox)</span>
         </CardTitle>
         <CardDescription>
-          Current OAuth 2.0 + PKCE configuration for sandbox environment
+          Current OAuth 2.0 Authorization Code + PKCE configuration for sandbox environment
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -68,7 +68,8 @@ const ConfigPanel: React.FC = () => {
               <span className="text-sm font-medium">Security Features</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">PKCE (S256)</Badge>
+              <Badge variant="secondary">Authorization Code + PKCE</Badge>
+              <Badge variant="secondary">S256 Challenge</Badge>
               <Badge variant="secondary">No Client Secret</Badge>
               <Badge variant="secondary">In-Memory Tokens</Badge>
               <Badge variant="secondary">State Validation</Badge>
@@ -82,10 +83,11 @@ const ConfigPanel: React.FC = () => {
           <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
             <li>Sandbox client ID is configured</li>
             <li>Fixed redirect URI is set for production deployment</li>
-            <li>Ensure the Okta app is configured as a "Public" client type</li>
-            <li>Enable PKCE in your Okta application settings</li>
+            <li>Using secure Authorization Code + PKCE flow (response_type=code)</li>
+            <li>Scopes: openid, profile, email explicitly requested</li>
+            <li>PKCE S256 challenge method for enhanced security</li>
             <li>Configure MFA policies for enhanced security</li>
-            <li>After login, access token is decoded and Novata API /me is called</li>
+            <li>After token exchange, access token is decoded and Novata API /me is called</li>
           </ol>
         </div>
       </CardContent>
