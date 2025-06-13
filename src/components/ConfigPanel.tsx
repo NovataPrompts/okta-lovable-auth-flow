@@ -56,7 +56,7 @@ const ConfigPanel: React.FC = () => {
               {redirectUri}
             </code>
             <p className="text-xs text-muted-foreground">
-              Configure this URI in your Okta sandbox application settings
+              Fixed redirect URI for production deployment
             </p>
           </div>
 
@@ -81,10 +81,11 @@ const ConfigPanel: React.FC = () => {
           <h4 className="text-sm font-medium text-blue-800 mb-2">Sandbox Setup Instructions</h4>
           <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
             <li>Sandbox client ID is configured</li>
-            <li>Add the redirect URI to your Okta sandbox app configuration</li>
+            <li>Fixed redirect URI is set for production deployment</li>
             <li>Ensure the Okta app is configured as a "Public" client type</li>
             <li>Enable PKCE in your Okta application settings</li>
             <li>Configure MFA policies for enhanced security</li>
+            <li>After login, access token is decoded and Novata API /me is called</li>
           </ol>
         </div>
       </CardContent>

@@ -3,11 +3,7 @@
 class OAuthService {
   private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
   private readonly clientId = '0oan1pa7s3tRupysv1d7';
-  
-  // Dynamically determine redirect URI based on environment
-  private getRedirectUriInternal(): string {
-    return `${window.location.origin}/login/callback`;
-  }
+  private readonly redirectUri = 'https://pages.beta.novata.dev/okta-lovable-auth-flow/callback';
   
   private readonly scope = 'openid profile email';
   
@@ -67,6 +63,36 @@ class OAuthService {
     }
   }
 
+  // Call Novata API /me endpoint after successful authentication
+  private async callNovataMe(accessToken: string): Promise<void> {
+    try {
+      console.log('🚀 Calling Novata API /me endpoint...');
+      
+      const response = await fetch('https://api.sandbox.novata.com/apis/novata/me', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('📡 Novata API response status:', response.status);
+      console.log('📡 Novata API response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Novata API error:', errorText);
+        return;
+      }
+
+      const userData = await response.json();
+      console.log('✅ Novata API /me response:', userData);
+      
+    } catch (error) {
+      console.error('💥 Error calling Novata API:', error);
+    }
+  }
+
   // Initiate OAuth login flow
   async initiateLogin(): Promise<void> {
     try {
@@ -77,13 +103,12 @@ class OAuthService {
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       const state = this.generateState();
-      const redirectUri = this.getRedirectUriInternal();
 
       console.log('Generated PKCE parameters:');
       console.log('- Code verifier length:', codeVerifier.length);
       console.log('- Code challenge length:', codeChallenge.length);
       console.log('- State length:', state.length);
-      console.log('- Redirect URI:', redirectUri);
+      console.log('- Redirect URI:', this.redirectUri);
 
       // Store PKCE parameters in sessionStorage temporarily (cleared after use)
       sessionStorage.setItem('oauth_code_verifier', codeVerifier);
@@ -92,7 +117,7 @@ class OAuthService {
       const authUrl = new URL(`${this.issuer}/v1/authorize`);
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('client_id', this.clientId);
-      authUrl.searchParams.set('redirect_uri', redirectUri);
+      authUrl.searchParams.set('redirect_uri', this.redirectUri);
       authUrl.searchParams.set('scope', this.scope);
       authUrl.searchParams.set('state', state);
       authUrl.searchParams.set('code_challenge', codeChallenge);
@@ -103,7 +128,7 @@ class OAuthService {
       console.log('OAuth Configuration:');
       console.log('- Issuer:', this.issuer);
       console.log('- Client ID:', this.clientId);
-      console.log('- Redirect URI:', redirectUri);
+      console.log('- Redirect URI:', this.redirectUri);
       console.log('- Scope:', this.scope);
       console.log('Full Authorization URL:', authUrl.toString());
       
@@ -143,7 +168,6 @@ class OAuthService {
       
       const error = fullUrl.searchParams.get('error');
       const errorDescription = fullUrl.searchParams.get('error_description');
-      const redirectUri = this.getRedirectUriInternal();
 
       console.log('📋 Callback URL analysis:', {
         code: code ? `present (${code.substring(0, 10)}...)` : 'missing',
@@ -152,7 +176,7 @@ class OAuthService {
         errorDescription,
         currentPath: window.location.pathname,
         fullUrl: window.location.href,
-        redirectUri,
+        redirectUri: this.redirectUri,
         allParams: Object.fromEntries(fullUrl.searchParams.entries())
       });
 
@@ -180,7 +204,7 @@ class OAuthService {
         if (hashCode && hashState) {
           console.log('🔄 Found OAuth parameters in URL hash, using those instead');
           // Use hash parameters if available
-          return this.exchangeCodeForTokens(hashCode, hashState, redirectUri);
+          return this.exchangeCodeForTokens(hashCode, hashState);
         }
         
         // If we're on the callback route but missing parameters
@@ -192,7 +216,7 @@ class OAuthService {
       }
 
       console.log('✅ OAuth parameters validated, proceeding to token exchange');
-      return this.exchangeCodeForTokens(code, state, redirectUri);
+      return this.exchangeCodeForTokens(code, state);
       
     } catch (error) {
       console.error('💥 Error handling OAuth callback:', error);
@@ -203,7 +227,7 @@ class OAuthService {
   }
 
   // Separate method to handle the token exchange
-  private async exchangeCodeForTokens(code: string, state: string, redirectUri: string): Promise<{ accessToken: string; idToken?: string }> {
+  private async exchangeCodeForTokens(code: string, state: string): Promise<{ accessToken: string; idToken?: string }> {
     console.log('🔄 Starting token exchange process...');
     
     // Verify state parameter
@@ -231,7 +255,7 @@ class OAuthService {
       tokenEndpoint,
       codeVerifierLength: codeVerifier.length,
       codeLength: code.length,
-      redirectUri
+      redirectUri: this.redirectUri
     });
 
     // Exchange code for tokens
@@ -239,7 +263,7 @@ class OAuthService {
       grant_type: 'authorization_code',
       client_id: this.clientId,
       code,
-      redirect_uri: redirectUri,
+      redirect_uri: this.redirectUri,
       code_verifier: codeVerifier,
     });
 
@@ -290,6 +314,9 @@ class OAuthService {
       // Decode and log token contents as requested
       if (tokens.access_token) {
         this.decodeAndLogToken(tokens.access_token, 'Access');
+        
+        // Call Novata API /me endpoint after successful token exchange
+        await this.callNovataMe(tokens.access_token);
       }
       
       if (tokens.id_token) {
@@ -315,7 +342,7 @@ class OAuthService {
 
   // Get current redirect URI for configuration
   getRedirectUri(): string {
-    return this.getRedirectUriInternal();
+    return this.redirectUri;
   }
 
   // Get client ID for configuration display
