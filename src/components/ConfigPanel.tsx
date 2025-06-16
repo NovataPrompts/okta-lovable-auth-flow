@@ -15,10 +15,10 @@ const ConfigPanel: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Settings className="h-5 w-5" />
-          <span>OAuth Configuration (Sandbox)</span>
+          <span>OAuth Configuration (Demo)</span>
         </CardTitle>
         <CardDescription>
-          Current OAuth 2.0 Authorization Code + PKCE configuration for sandbox environment
+          Current OAuth 2.0 Authorization Code + PKCE configuration for demo environment
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -26,10 +26,10 @@ const ConfigPanel: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <Globe className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium">Okta Sandbox Issuer</span>
+              <span className="text-sm font-medium">Okta Demo Issuer</span>
             </div>
             <code className="block text-xs bg-gray-100 p-2 rounded border">
-              https://novatacimsandbox.oktapreview.com/oauth2/default
+              https://demo-okta.novata.com/oauth2/default
             </code>
           </div>
 
@@ -38,7 +38,7 @@ const ConfigPanel: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <Key className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium">Sandbox Client ID</span>
+              <span className="text-sm font-medium">Demo Client ID</span>
             </div>
             <code className="block text-xs bg-gray-100 p-2 rounded border">
               {clientId}
@@ -73,21 +73,22 @@ const ConfigPanel: React.FC = () => {
               <Badge variant="secondary">No Client Secret</Badge>
               <Badge variant="secondary">In-Memory Tokens</Badge>
               <Badge variant="secondary">State Validation</Badge>
-              <Badge variant="secondary">MFA Required</Badge>
+              <Badge variant="secondary">Lovable SSO Devs</Badge>
             </div>
           </div>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-          <h4 className="text-sm font-medium text-blue-800 mb-2">Sandbox Setup Instructions</h4>
+          <h4 className="text-sm font-medium text-blue-800 mb-2">Demo Environment Setup</h4>
           <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Sandbox client ID is configured</li>
-            <li>Fixed redirect URI is set for production deployment</li>
+            <li>Demo client ID configured for SPA (Single Page Application)</li>
+            <li>Fixed redirect URI set for production deployment</li>
             <li>Using secure Authorization Code + PKCE flow (response_type=code)</li>
             <li>Scopes: openid, profile, email explicitly requested</li>
             <li>PKCE S256 challenge method for enhanced security</li>
-            <li>Configure MFA policies for enhanced security</li>
-            <li>After token exchange, access token is decoded and Novata API /me is called</li>
+            <li>App assigned to "Lovable SSO Devs" group with matching access policy</li>
+            <li>Tokens issued by demo-okta.novata.com are accepted by sandbox API</li>
+            <li>CORS configured for pages.beta.novata.dev domain</li>
           </ol>
         </div>
       </CardContent>

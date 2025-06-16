@@ -1,8 +1,8 @@
 
 // OAuth 2.0 with Authorization Code + PKCE flow for Okta authentication with MFA support
 class OAuthService {
-  private readonly issuer = 'https://novatacimsandbox.oktapreview.com/oauth2/default';
-  private readonly clientId = '0oan1pa7s3tRupysv1d7';
+  private readonly issuer = 'https://demo-okta.novata.com/oauth2/default';
+  private readonly clientId = '0oap72q3ppDf7mqGR5d7';
   private readonly redirectUri = 'https://pages.beta.novata.dev/okta-lovable-auth-flow/callback';
   
   // Explicitly define scopes as array for clarity
