@@ -1,4 +1,3 @@
-
 // OAuth 2.0 with Authorization Code + PKCE flow for Okta authentication with MFA support
 class OAuthService {
   private readonly issuer = 'https://demo-okta.novata.com/oauth2/default';
@@ -25,11 +24,28 @@ class OAuthService {
     return btoa(String.fromCharCode(...array)).replace(/[^a-zA-Z0-9]/g, '');
   }
 
-  // Generate PKCE code verifier
+  // Generate RFC 7636 compliant PKCE code verifier (43-128 characters, unreserved chars only)
   private generateCodeVerifier(): string {
-    const array = new Uint8Array(32);
+    // RFC 7636: code_verifier = 43*128unreserved
+    // unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+    const unreservedChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    const length = 128; // Use maximum length for better entropy
+    
+    const array = new Uint8Array(length);
     crypto.getRandomValues(array);
-    return btoa(String.fromCharCode(...array)).replace(/[^a-zA-Z0-9]/g, '');
+    
+    let codeVerifier = '';
+    for (let i = 0; i < length; i++) {
+      codeVerifier += unreservedChars[array[i] % unreservedChars.length];
+    }
+    
+    console.log('🔐 Generated PKCE code verifier:', {
+      length: codeVerifier.length,
+      isCompliant: codeVerifier.length >= 43 && codeVerifier.length <= 128,
+      sample: codeVerifier.substring(0, 20) + '...'
+    });
+    
+    return codeVerifier;
   }
 
   // Generate PKCE code challenge from verifier
@@ -37,10 +53,18 @@ class OAuthService {
     const encoder = new TextEncoder();
     const data = encoder.encode(verifier);
     const digest = await crypto.subtle.digest('SHA-256', data);
-    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=/g, '');
+    
+    console.log('🔐 Generated PKCE code challenge:', {
+      verifierLength: verifier.length,
+      challengeLength: challenge.length,
+      method: 'S256'
+    });
+    
+    return challenge;
   }
 
   // Decode and log JWT token parts
@@ -113,10 +137,15 @@ class OAuthService {
 
       console.log('Generated OAuth parameters:');
       console.log('- State length:', state.length);
-      console.log('- Code verifier length:', codeVerifier.length);
+      console.log('- Code verifier length:', codeVerifier.length, '(RFC 7636 compliant:', codeVerifier.length >= 43 && codeVerifier.length <= 128, ')');
       console.log('- Code challenge length:', codeChallenge.length);
       console.log('- Redirect URI:', this.redirectUri);
       console.log('- Requested scopes:', this.scopes);
+
+      // Validate PKCE compliance before proceeding
+      if (codeVerifier.length < 43 || codeVerifier.length > 128) {
+        throw new Error(`PKCE code verifier length ${codeVerifier.length} is not RFC 7636 compliant (must be 43-128 characters)`);
+      }
 
       // Store state and code verifier in sessionStorage for validation
       sessionStorage.setItem('oauth_state', state);
@@ -141,6 +170,7 @@ class OAuthService {
       console.log('- Scope (space-separated):', this.scope);
       console.log('- Individual scopes:', this.scopes);
       console.log('- PKCE Challenge Method: S256');
+      console.log('- PKCE Code Verifier Length:', codeVerifier.length, '(RFC 7636 compliant)');
       console.log('Full Authorization URL:', authUrl.toString());
       
       // Add a small delay to ensure logging completes
@@ -226,6 +256,23 @@ class OAuthService {
         throw new Error('Missing PKCE code verifier');
       }
 
+      // Validate code verifier RFC 7636 compliance
+      console.log('🔐 PKCE Code Verifier validation:', {
+        length: codeVerifier.length,
+        isCompliant: codeVerifier.length >= 43 && codeVerifier.length <= 128,
+        charsetTest: /^[A-Za-z0-9\-._~]+$/.test(codeVerifier)
+      });
+
+      if (codeVerifier.length < 43 || codeVerifier.length > 128) {
+        console.error('❌ Code verifier length not RFC 7636 compliant:', codeVerifier.length);
+        throw new Error(`PKCE code verifier length ${codeVerifier.length} is not RFC 7636 compliant (must be 43-128 characters)`);
+      }
+
+      if (!/^[A-Za-z0-9\-._~]+$/.test(codeVerifier)) {
+        console.error('❌ Code verifier contains invalid characters for RFC 7636');
+        throw new Error('PKCE code verifier contains invalid characters (must be A-Z, a-z, 0-9, "-", ".", "_", "~")');
+      }
+
       console.log('🔄 Exchanging authorization code for tokens...');
 
       // Exchange authorization code for tokens
@@ -248,6 +295,13 @@ class OAuthService {
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
         console.error('❌ Token exchange failed:', errorText);
+        
+        // Check specifically for PKCE verification errors
+        if (errorText.includes('PKCE verification failed') || errorText.includes('code_verifier')) {
+          console.error('❌ PKCE verification failed - code verifier issue detected');
+          throw new Error(`PKCE verification failed: ${errorText}`);
+        }
+        
         throw new Error(`Token exchange failed: ${errorText}`);
       }
 
